@@ -37,3 +37,7 @@ redis==7.4.0
 
 # Observability
 python-json-logger==3.2.1
+
+# Sandbox Test Runner & Verification
+pytest>=8.0.0
+pytest-asyncio>=0.23.0

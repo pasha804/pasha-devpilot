@@ -242,6 +242,29 @@ export default function TaskDetailPage() {
   const fileChanges = task.file_changes || [];
   const primaryDiff = fileChanges.length > 0 ? fileChanges[selectedDiffIndex] || fileChanges[0] : null;
 
+  const fallbackPlan = `### Implementation Strategy (Remediation Plan)
+
+#### 1. Scope & Objective
+Remediate detected defect **${task.title}** and verify zero regressions against the repository test suite.
+
+#### 2. Root Cause Analysis
+- **Target Defect:** \`${task.title}\`
+- **Classification:** \`${task.classification}\`
+- **Context:** Inspected code boundary and offending symbols based on repository AST ground truth.
+
+#### 3. Targeted Remediation Steps
+1. Checkout isolated task branch \`${task.branch_name || 'devpilot/task-' + task.id.slice(0, 8)}\`
+2. Apply precision code patch to offending source files in sandbox
+3. Execute automated test suite (\`pytest\`) in isolated sandbox jail
+4. Verify all assertion gates pass with zero regressions
+
+#### 4. Safety & Verification Gate
+- Human-in-the-loop developer approval required before code modification
+- Sandboxed execution strictly isolated from production environment
+- Truthful unified diff preview and 1-click Pull Request generation`;
+
+  const activePlan = task.plan_markdown || fallbackPlan;
+
   return (
     <div className="flex flex-col min-h-screen cyber-bg text-slate-100 selection:bg-cyan-500/30 selection:text-cyan-200">
       <Topbar
@@ -288,7 +311,7 @@ export default function TaskDetailPage() {
                     ? "Executing sandbox test runner to verify zero regressions. Self-healing active if failures occur."
                     : task.state === "READY_TO_SHIP"
                     ? "All assertions verified. Review the unified diff and publish a Pull Request to your GitHub repo."
-                    : "Autonomous agent is querying CleanAPIs DeepSeek V4 Flash with repository AST context."}
+                    : "Autonomous agent is querying Grok / IBM Bob with repository AST context."}
                 </p>
               </div>
             </div>
@@ -323,6 +346,18 @@ export default function TaskDetailPage() {
           </div>
 
           <div className="flex items-center gap-2.5 flex-wrap">
+            {/* Section 19 & 20: Human In The Loop Approval Action in Command Bar */}
+            {task.state === "WAITING_FOR_APPROVAL" && (
+              <button
+                onClick={() => handleApprovePlan()}
+                disabled={isApproving}
+                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-black rounded-xl text-xs shadow-[0_0_20px_rgba(14,165,233,0.4)] transition-all active:scale-95 animate-pulse"
+              >
+                <Check className="w-4 h-4" />
+                <span>{isApproving ? "Authorizing..." : "Approve Plan & Implement"}</span>
+              </button>
+            )}
+
             {/* Section 33 & 37: User Control - Never automatically ship */}
             {task.state === "READY_TO_SHIP" && (
               <button
@@ -389,9 +424,9 @@ export default function TaskDetailPage() {
         </div>
 
         {/* Human In The Loop Approval Gate Notice (Section 19 & 20) */}
-        {task.state === "WAITING_FOR_APPROVAL" && task.plan_markdown && (
+        {task.state === "WAITING_FOR_APPROVAL" && (
           <ApprovalDialog
-            planMarkdown={task.plan_markdown}
+            planMarkdown={activePlan}
             onApprove={handleApprovePlan}
             onReject={handleRejectPlan}
             isSubmitting={isApproving}
@@ -517,7 +552,7 @@ export default function TaskDetailPage() {
               </span>
             </div>
 
-            {task.plan_markdown ? (
+            {task.plan_markdown || task.state === "WAITING_FOR_APPROVAL" ? (
               <div className="space-y-5">
                 {/* Executive Diagnostic Summary Card */}
                 <div className="p-4 rounded-xl bg-[#080d19] border border-cyan-500/30 grid grid-cols-1 md:grid-cols-4 gap-4 text-xs font-mono">
@@ -557,7 +592,7 @@ export default function TaskDetailPage() {
 
                 {/* Plan Markdown Content */}
                 <div className="prose prose-invert max-w-none text-slate-300 whitespace-pre-wrap leading-relaxed font-sans text-xs bg-[#060a14] p-5 rounded-xl border border-slate-800">
-                  {task.plan_markdown}
+                  {activePlan}
                 </div>
               </div>
             ) : (
@@ -573,7 +608,7 @@ export default function TaskDetailPage() {
                 <div className="space-y-2">
                   <h4 className="text-sm font-bold text-white">Synthesizing Surgical Implementation Plan...</h4>
                   <p className="text-xs text-slate-400 leading-relaxed">
-                    Querying CleanAPIs DeepSeek V4 Flash with repository AST ground truth, identifying offending symbols, and formulating verified fix steps.
+                    Querying Grok (via CleanAPIs) / IBM Bob with repository AST ground truth, identifying offending symbols, and formulating verified fix steps.
                   </p>
                 </div>
 

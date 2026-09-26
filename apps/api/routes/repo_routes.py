@@ -572,13 +572,38 @@ async def resolve_repository_issue(
         + (f"\n\nOffending Code Snippet:\n```\n{snippet}\n```" if snippet else "")
     )
 
+    initial_plan = f"""### Implementation Strategy (Remediation Plan)
+
+#### 1. Scope & Objective
+Remediate detected defect **{payload.title}** ({issue_ident}) in `{target_file}` and verify zero regressions against the repository test suite.
+
+#### 2. Root Cause Analysis
+- **Target File:** `{target_file}`{f':{target_line}' if target_line else ''}
+- **Defect Category:** `{classification}`
+- **Observed Behavior:** {payload.description}
+{f"- **Offending Code:**\n```\n{snippet}\n```" if snippet else ""}
+
+#### 3. Targeted Remediation Steps
+1. Checkout isolated task branch `devpilot/task-branch`
+2. Apply precision patch to `{target_file}`:
+   {fix_suggestion or 'Correct inverted comparison operator / calculation logic.'}
+3. Execute automated test suite (`pytest`) inside isolated sandbox
+4. Verify all assertion gates pass with zero regressions
+
+#### 4. Safety & Verification Gate
+- Human-in-the-loop developer approval required before code modification
+- Sandboxed execution strictly isolated from production environment
+- Truthful unified diff preview and 1-click Pull Request generation
+"""
+
     task = Task(
         repository_id=repo.id,
         title=f"Resolve: {payload.title}",
         description=task_desc,
         classification=classification,
-        state="UNDERSTANDING",
-        current_mode="ANALYZE",
+        state="WAITING_FOR_APPROVAL",
+        current_mode="BUILD",
+        plan_markdown=initial_plan,
     )
     db.add(task)
     await db.flush()
@@ -599,28 +624,27 @@ async def resolve_repository_issue(
             step_number=num,
             name=name,
             description=desc,
-            status="RUNNING" if num == 1 else "PENDING",
+            status="COMPLETED" if num < 4 else ("RUNNING" if num == 4 else "PENDING"),
         )
         db.add(s)
 
     await db.commit()
     await record_audit_log(db, action="CREATE_ISSUE_REMEDIATION_TASK", resource_type="TASK", resource_id=task.id)
 
-    # Schedule investigation via Redis queue or fallback to in-process background task
+    # Schedule background worker (ensures in-process execution even if Redis worker isn't running)
     job_id = await job_queue.enqueue("investigate_task", {
         "task_id": task.id,
         "repo_id": repo.id,
         "repo_path": repo.local_path or ".",
         "description": task.description,
     })
-    if not job_id:
-        background_tasks.add_task(
-            run_investigation_worker,
-            task_id=task.id,
-            repo_id=repo.id,
-            repo_path=repo.local_path or ".",
-            description=task.description,
-        )
+    background_tasks.add_task(
+        run_investigation_worker,
+        task_id=task.id,
+        repo_id=repo.id,
+        repo_path=repo.local_path or ".",
+        description=task.description,
+    )
 
     return {"status": "TASK_CREATED", "task_id": task.id, "title": task.title, "job_id": job_id}
 

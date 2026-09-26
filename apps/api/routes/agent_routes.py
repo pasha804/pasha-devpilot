@@ -39,12 +39,7 @@ async def run_investigation_worker(task_id: str, repo_id: str, repo_path: str, d
             if not task:
                 return
 
-            provider = ModelRouter.get_provider(
-                provider_name=settings.AI_PROVIDER,
-                api_key=settings.AI_API_KEY,
-                model_name=settings.AI_MODEL_NAME,
-                base_url=settings.AI_BASE_URL,
-            )
+            provider = ModelRouter.get_development_provider()
             registry = get_default_tool_registry()
             orchestrator = AgentOrchestrator(provider, registry)
 
@@ -187,14 +182,13 @@ async def trigger_task_investigation(
         "repo_path": repo_path,
         "description": task.description,
     })
-    if not job_id:
-        background_tasks.add_task(
-            run_investigation_worker,
-            task_id=task.id,
-            repo_id=repo.id,
-            repo_path=repo_path,
-            description=task.description,
-        )
+    background_tasks.add_task(
+        run_investigation_worker,
+        task_id=task.id,
+        repo_id=repo.id,
+        repo_path=repo_path,
+        description=task.description,
+    )
 
     return {"status": "INVESTIGATION_SCHEDULED", "task_id": task.id, "job_id": job_id}
 
@@ -523,12 +517,11 @@ async def trigger_task_execution(
         "repo_id": repo.id,
         "repo_path": repo.local_path or ".",
     })
-    if not job_id:
-        background_tasks.add_task(
-            run_execution_worker,
-            task_id=task.id,
-            repo_id=repo.id,
-            repo_path=repo.local_path or ".",
-        )
+    background_tasks.add_task(
+        run_execution_worker,
+        task_id=task.id,
+        repo_id=repo.id,
+        repo_path=repo.local_path or ".",
+    )
 
     return {"status": "EXECUTION_SCHEDULED", "task_id": task.id, "job_id": job_id}

@@ -42,17 +42,23 @@ class ModelRouter:
                 model_name=model_name,
                 base_url=base_url,
             )
+        elif p in ("grok", "grok-4.6", "xai"):
+            return CleanAPIsProvider(
+                api_key=api_key,
+                model_name=model_name or "grok-4.6",
+                base_url=base_url or "https://cleanapis.com/v1",
+            )
+        elif p in ("groq", "llama"):
+            return GroqProvider(
+                api_key=api_key,
+                model_name=model_name or "llama-3.3-70b-versatile",
+                base_url=base_url or "https://api.groq.com/openai/v1",
+            )
         elif p in ("deepseek", "deepseek-v4", "cleanapis", "clean-apis", "clean_apis"):
             return DeepSeekProvider(
                 api_key=api_key,
                 model_name=model_name or "deepseek-v4-flash-0731",
                 base_url=base_url or "https://cleanapis.com/v1",
-            )
-        elif p == "groq":
-            return GroqProvider(
-                api_key=api_key,
-                model_name=model_name or "llama-3.3-70b-versatile",
-                base_url=base_url or "https://api.groq.com/openai/v1",
             )
         elif p == "openai":
             return OpenAIProvider(
@@ -70,7 +76,9 @@ class ModelRouter:
     @classmethod
     def get_development_provider(cls) -> BaseAIProvider:
         """Returns the primary Development Mode provider.
-        Prefers IBM Bob when BOB_API_KEY is set, else falls back to configured AI_DEFAULT_PROVIDER.
+        Prioritizes IBM Bob when BOB_API_KEY is set.
+        Then Groq / Grok when GROQ_API_KEY or grok is configured.
+        Falls back to CleanAPIs / configured AI_DEFAULT_PROVIDER.
         """
         from apps.api.core.config import settings
         bob_key = getattr(settings, "BOB_API_KEY", None)
@@ -81,10 +89,20 @@ class ModelRouter:
                 model_name=getattr(settings, "BOB_MODEL", None),
                 base_url=getattr(settings, "BOB_BASE_URL", None),
             )
+
+        groq_key = getattr(settings, "GROQ_API_KEY", None)
+        if groq_key or getattr(settings, "AI_PROVIDER", "").lower() in ("groq", "llama"):
+            return cls.get_provider(
+                provider_name="groq",
+                api_key=groq_key or settings.AI_API_KEY,
+                model_name=getattr(settings, "GROQ_MODEL", "llama-3.3-70b-versatile"),
+                base_url=getattr(settings, "GROQ_BASE_URL", "https://api.groq.com/openai/v1"),
+            )
+
         prov = getattr(settings, "AI_DEFAULT_PROVIDER", settings.AI_PROVIDER)
         model = getattr(settings, "AI_DEFAULT_MODEL", settings.AI_MODEL_NAME)
-        key = getattr(settings, "DEEPSEEK_API_KEY", None) or settings.AI_API_KEY
-        base = getattr(settings, "DEEPSEEK_BASE_URL", settings.AI_BASE_URL)
+        key = getattr(settings, "AI_API_KEY", None) or getattr(settings, "DEEPSEEK_API_KEY", None)
+        base = getattr(settings, "AI_BASE_URL", settings.DEEPSEEK_BASE_URL)
         return cls.get_provider(provider_name=prov, api_key=key, model_name=model, base_url=base)
 
     @classmethod
