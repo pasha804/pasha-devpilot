@@ -28,6 +28,7 @@
 - 🎬 **[DEMO_SCRIPT.md](DEMO_SCRIPT.md)** — Word-by-word timestamped video recording script (English)
 - 📝 **[DETAIL.txt](DETAIL.txt)** — Plain-text quick reference sheet for hackathon forms & elevator pitch
 - 📊 **[Interactive Presentation (Browser)](presentation.html)** / **[PowerPoint Slides (PPTX)](Pasha_DevPilot_Deck.pptx)**
+- 🎨 **[GAMMA_PROMPT.md](GAMMA_PROMPT.md)** — Master Prompt for AI Presentation Generators (Gamma.app / ClickUp)
 - 🤖 **[SKILL.md](SKILL.md)** — Official IBM Bob Skill Marketplace package
 
 ---
