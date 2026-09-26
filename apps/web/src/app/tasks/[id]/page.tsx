@@ -201,10 +201,9 @@ export default function TaskDetailPage() {
     setIsCancelling(true);
     try {
       await api.cancelTask(taskId);
-      await loadTask();
+      router.push("/tasks");
     } catch (err) {
       console.error("Cancel failed:", err);
-    } finally {
       setIsCancelling(false);
     }
   };

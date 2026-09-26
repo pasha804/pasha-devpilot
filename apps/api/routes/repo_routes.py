@@ -34,9 +34,33 @@ router = APIRouter(prefix="/repositories", tags=["Repositories"])
 
 
 @router.get("", response_model=List[RepositoryResponse])
-async def list_repositories(db: AsyncSession = Depends(get_db)):
-    """List all repositories registered in the platform."""
-    q = await db.execute(select(Repository).order_by(Repository.created_at.desc()))
+async def list_repositories(
+    authorization: Optional[str] = Header(None),
+    db: AsyncSession = Depends(get_db),
+):
+    """List repositories for the authenticated user; hide private repositories when logged out."""
+    current_username = None
+    if authorization and authorization.startswith("Bearer "):
+        payload = decode_access_token(authorization.split(" ")[1])
+        if payload and "sub" in payload:
+            current_username = payload.get("username")
+            if not current_username:
+                q_u = await db.execute(select(User).where(User.id == payload["sub"]))
+                u = q_u.scalars().first()
+                if u:
+                    current_username = u.username
+
+    stmt = select(Repository).order_by(Repository.created_at.desc())
+    if not current_username:
+        # Logged out / unauthenticated: only show public / demo repositories, never private repos!
+        stmt = stmt.where(Repository.is_private == False)
+    else:
+        # Logged in: show user's repos or public repos
+        stmt = stmt.where(
+            (Repository.owner == current_username) | (Repository.is_private == False)
+        )
+
+    q = await db.execute(stmt)
     repos = q.scalars().all()
 
     results = []
@@ -74,7 +98,7 @@ async def list_github_available_repos(
     username: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
-    """List available GitHub repositories (both public and private) for the authenticated user."""
+    """List available GitHub repositories for the authenticated user. Never leaks data when logged out."""
     user_token = token
     resolved_username = username
     if authorization and authorization.startswith("Bearer "):
@@ -88,25 +112,16 @@ async def list_github_available_repos(
                 if not resolved_username and u.username:
                     resolved_username = u.username
 
-    # Fallback 1: Resolve user token by username if not found via Bearer
+    # Resolve user token by explicitly requested username
     if not user_token and resolved_username:
         q_by_user = await db.execute(select(User).where(User.username == resolved_username))
         u_named = q_by_user.scalars().first()
         if u_named and u_named.github_access_token and "mock" not in u_named.github_access_token:
             user_token = u_named.github_access_token
 
-    # Fallback 2: Retrieve the active authenticated user with real GitHub access token
-    if not user_token:
-        q_recent = await db.execute(
-            select(User)
-            .where(User.github_access_token.isnot(None))
-            .order_by(User.created_at.desc())
-        )
-        recent_u = q_recent.scalars().first()
-        if recent_u and recent_u.github_access_token and "mock" not in recent_u.github_access_token:
-            user_token = recent_u.github_access_token
-            if not resolved_username:
-                resolved_username = recent_u.username
+    # If unauthenticated and no username is specified, return empty list (do NOT leak other users' repos!)
+    if not user_token and not resolved_username:
+        return []
 
     gh = GitHubService(token=user_token)
     repos = await gh.list_repositories(username=resolved_username)

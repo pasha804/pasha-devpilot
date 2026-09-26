@@ -81,6 +81,13 @@ function RepositoriesContent() {
 
       const usernameToQuery = customUser || user?.username || undefined;
 
+      // If user is unauthenticated and no custom username requested, clear and do not show stale data
+      if (!user && !customUser) {
+        setRepositories([]);
+        setGithubAvailable([]);
+        return;
+      }
+
       const [repos, ghRepos] = await Promise.all([
         api.getRepositories().catch(() => []),
         api.getGitHubAvailable(usernameToQuery).catch(() => []),
@@ -188,6 +195,8 @@ function RepositoriesContent() {
   const handleDisconnect = async () => {
     await api.logout();
     setCurrentUser(null);
+    setRepositories([]);
+    setGithubAvailable([]);
     await loadData();
   };
 

@@ -32,10 +32,17 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Handle Next.js monorepo standalone directory structure where server.js resides in apps/web/
+RUN if [ -d "./apps/web" ]; then \
+      mkdir -p ./apps/web/.next && \
+      cp -r ./.next/static ./apps/web/.next/static && \
+      cp -r ./public ./apps/web/public || true; \
+    fi
+
 USER nextjs
 
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+CMD ["sh", "-c", "if [ -f apps/web/server.js ]; then node apps/web/server.js; else node server.js; fi"]

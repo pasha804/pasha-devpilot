@@ -458,3 +458,39 @@ async def _upsert_user_and_issue_jwt(
         name=user.name,
         avatar_url=user.avatar_url,
     )
+
+
+@router.post("/logout")
+async def logout_user(
+    authorization: Optional[str] = Header(None),
+    db: AsyncSession = Depends(get_db),
+):
+    """Logs out the user, invalidates their active sessions."""
+    if authorization and authorization.startswith("Bearer "):
+        payload = decode_access_token(authorization.split(" ")[1])
+        if payload and "sub" in payload:
+            user_id = payload["sub"]
+            await db.execute(delete(Session).where(Session.user_id == user_id))
+            await record_audit_log(db, action="USER_LOGOUT", user_id=user_id, resource_type="AUTH")
+            await db.commit()
+    return {"status": "success", "message": "Successfully logged out."}
+
+
+@router.post("/github/disconnect")
+async def disconnect_github(
+    authorization: Optional[str] = Header(None),
+    db: AsyncSession = Depends(get_db),
+):
+    """Disconnects GitHub integration, revoking access tokens for the authenticated user."""
+    if authorization and authorization.startswith("Bearer "):
+        payload = decode_access_token(authorization.split(" ")[1])
+        if payload and "sub" in payload:
+            user_id = payload["sub"]
+            q = await db.execute(select(User).where(User.id == user_id))
+            user = q.scalars().first()
+            if user:
+                user.github_access_token = None
+                await db.execute(delete(Session).where(Session.user_id == user_id))
+                await record_audit_log(db, action="GITHUB_DISCONNECT", user_id=user_id, resource_type="AUTH")
+                await db.commit()
+    return {"status": "success", "message": "GitHub disconnected successfully."}

@@ -4,14 +4,16 @@ Pasha DevPilot — Task Management & Approval Routes
 
 from datetime import datetime, timezone
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from ..core.database import get_db
+from ..core.security import decode_access_token
 from ..core.audit import record_audit_log
 from ..models.task import Task, TaskStep, FileChange, VerificationRun
 from ..models.repository import Repository
+from ..models.user import User
 from ..schemas.task import TaskCreate, TaskResponse, PlanApprovalRequest, FileDiffItem, TaskStepItem, VerificationRunItem
 from ..services.event_bus import event_bus
 
@@ -21,11 +23,36 @@ router = APIRouter(prefix="/tasks", tags=["Tasks"])
 @router.get("", response_model=List[TaskResponse])
 async def list_tasks(
     repository_id: Optional[str] = Query(None),
+    authorization: Optional[str] = Header(None),
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = select(Task).order_by(Task.created_at.desc())
+    current_username = None
+    if authorization and authorization.startswith("Bearer "):
+        payload = decode_access_token(authorization.split(" ")[1])
+        if payload and "sub" in payload:
+            current_username = payload.get("username")
+            if not current_username:
+                q_u = await db.execute(select(User).where(User.id == payload["sub"]))
+                u = q_u.scalars().first()
+                if u:
+                    current_username = u.username
+
+    stmt = (
+        select(Task)
+        .join(Repository, Task.repository_id == Repository.id, isouter=True)
+        .order_by(Task.created_at.desc())
+    )
     if repository_id:
         stmt = stmt.where(Task.repository_id == repository_id)
+
+    if not current_username:
+        # Unauthenticated: only show tasks belonging to public repositories or demo repositories
+        stmt = stmt.where((Repository.is_private == False) | (Task.repository_id == None))
+    else:
+        # Authenticated: show tasks for user's own repositories or public repositories
+        stmt = stmt.where(
+            (Repository.owner == current_username) | (Repository.is_private == False) | (Task.repository_id == None)
+        )
 
     q = await db.execute(stmt)
     tasks = q.scalars().all()
