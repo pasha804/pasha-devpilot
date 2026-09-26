@@ -4,6 +4,7 @@ Manages task branch isolation (`devpilot/task/<task-id>`), structured convention
 truthful PR markdown documentation, and GitHub PR creation.
 """
 
+from pathlib import Path
 from typing import Dict, Any, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
