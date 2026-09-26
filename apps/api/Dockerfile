@@ -22,7 +22,7 @@ COPY apps/api/requirements.txt ./requirements.txt
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
 # Copy application source
-COPY apps/api ./apps/api
+COPY apps ./apps
 COPY packages ./packages
 
 # Copy the built-in demo sandbox repository
