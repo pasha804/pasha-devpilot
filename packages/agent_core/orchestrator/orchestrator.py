@@ -94,7 +94,7 @@ class AgentOrchestrator:
         await emit("tool_result", TaskState.INVESTIGATING, "Analyzed repository tree", {"files_found": files_res.data.get("total_files_found", 0) if files_res.data else 0})
 
         # 3. PLANNING
-        await emit("state_change", TaskState.PLANNING, "Formulating implementation plan and assessing risks...")
+        await emit("state_change", TaskState.PLANNING, f"Synthesizing surgical implementation plan using {getattr(self.provider, 'model_name', 'AI')}...")
         planning_prompt = PLANNING_PROMPT_TEMPLATE.format(
             task_description=description,
             classification=classification.value,
@@ -105,14 +105,20 @@ class AgentOrchestrator:
             AgentMessage(role="system", content=SYSTEM_PROMPT),
             AgentMessage(role="user", content=planning_prompt),
         ]
-        completion = await self.provider.generate_completion(messages)
+        completion = await self.provider.generate_completion(messages, max_tokens=1500)
         plan_content = completion.content
 
         # 4. WAITING_FOR_APPROVAL
         await emit(
-            "plan_ready",
+            "state_change",
             TaskState.WAITING_FOR_APPROVAL,
             "Implementation plan formulated. Waiting for human approval to apply modifications.",
+            {"plan": plan_content, "classification": classification.value},
+        )
+        await emit(
+            "plan_ready",
+            TaskState.WAITING_FOR_APPROVAL,
+            "Implementation plan ready for review.",
             {"plan": plan_content, "classification": classification.value},
         )
 

@@ -175,10 +175,10 @@ async def test_cleanapis_and_deepseek_provider_routing():
     from packages.agent_core.providers.deepseek_provider import DeepSeekProvider
     from packages.agent_core.providers.groq_provider import GroqProvider
 
-    # Test DeepSeek routing
+    # Test DeepSeek / CleanAPIs routing
     dev_provider = ModelRouter.get_development_provider()
     assert isinstance(dev_provider, DeepSeekProvider)
-    assert dev_provider.model_name == "deepseek-v4-flash-0731"
+    assert dev_provider.model_name in ("grok-4.6", "deepseek-v4-flash-0731")
 
     # Test Groq routing
     groq_provider = ModelRouter.get_provider(

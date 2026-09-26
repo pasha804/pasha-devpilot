@@ -89,6 +89,11 @@ export default function TaskDetailPage() {
   useEffect(() => {
     loadTask();
 
+    // Active polling interval: Polls every 2.5s to ensure live state is never out of sync
+    const pollInterval = setInterval(() => {
+      loadTask();
+    }, 2500);
+
     // Connect to live Server-Sent Events (SSE) stream (Section 45)
     const eventSource = new EventSource(`${API_BASE}/tasks/${taskId}/events`);
 
@@ -125,6 +130,7 @@ export default function TaskDetailPage() {
     };
 
     return () => {
+      clearInterval(pollInterval);
       eventSource.close();
     };
   }, [taskId, loadTask]);

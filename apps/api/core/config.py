@@ -32,11 +32,11 @@ class Settings(BaseSettings):
     AI_PROVIDER: str = "cleanapis"
     AI_BASE_URL: str = "https://cleanapis.com/v1"
     AI_API_KEY: Optional[str] = None
-    AI_MODEL_NAME: str = "deepseek-v4-flash-0731"
+    AI_MODEL_NAME: str = "grok-4.6"
 
     # Development & Verification Provider Modes
-    AI_DEFAULT_PROVIDER: str = "deepseek"
-    AI_DEFAULT_MODEL: str = "deepseek-v4-flash-0731"
+    AI_DEFAULT_PROVIDER: str = "cleanapis"
+    AI_DEFAULT_MODEL: str = "grok-4.6"
     AI_VERIFICATION_PROVIDER: str = "groq"
     AI_VERIFICATION_MODEL: str = "llama-3.3-70b-versatile"
 
