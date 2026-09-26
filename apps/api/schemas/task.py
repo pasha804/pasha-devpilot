@@ -68,4 +68,5 @@ class TaskResponse(BaseModel):
     verification_passed: Optional[bool] = None
     latest_verification: Optional[VerificationRunItem] = None
     verification_runs: List[VerificationRunItem] = Field(default_factory=list)
+    pull_request_url: Optional[str] = None
 

@@ -49,16 +49,16 @@ export default function TasksListPage() {
     loadData();
   }, []);
 
+  const isTaskCompleted = (t: TaskItem) =>
+    t.state === "COMPLETED" ||
+    t.state === "READY_TO_SHIP" ||
+    (t.verification_passed === true && t.file_changes && t.file_changes.length > 0);
+
   const activeTasks = tasks.filter(
-    (t) =>
-      t.state !== "COMPLETED" &&
-      t.state !== "READY_TO_SHIP" &&
-      t.state !== "CANCELLED"
+    (t) => !isTaskCompleted(t) && t.state !== "CANCELLED"
   );
 
-  const completedTasks = tasks.filter(
-    (t) => t.state === "COMPLETED" || t.state === "READY_TO_SHIP"
-  );
+  const completedTasks = tasks.filter(isTaskCompleted);
 
   const filtered = tasks.filter((t) => {
     const matchesQuery =
@@ -70,9 +70,9 @@ export default function TasksListPage() {
 
     if (filterState === "ALL") return true;
     if (filterState === "ACTIVE")
-      return t.state !== "COMPLETED" && t.state !== "READY_TO_SHIP" && t.state !== "CANCELLED";
+      return !isTaskCompleted(t) && t.state !== "CANCELLED";
     if (filterState === "DONE")
-      return t.state === "COMPLETED" || t.state === "READY_TO_SHIP";
+      return isTaskCompleted(t);
     if (filterState === "APPROVAL")
       return t.state === "WAITING_FOR_APPROVAL";
 

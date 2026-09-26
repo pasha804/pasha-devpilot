@@ -104,6 +104,7 @@ export interface TaskItem {
   verification_passed?: boolean;
   latest_verification?: VerificationRun | null;
   verification_runs?: VerificationRun[];
+  pull_request_url?: string;
 }
 
 export interface SearchMatch {

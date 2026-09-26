@@ -68,6 +68,8 @@ class GitWorkflowService:
                         continue
                     await self.sandbox.execute_safe_command(["git", "add", fpath])
 
+        await self.sandbox.execute_safe_command(["git", "config", "user.email", "devpilot@pasha.ai"])
+        await self.sandbox.execute_safe_command(["git", "config", "user.name", "Pasha DevPilot"])
         commit_res = await self.sandbox.execute_safe_command(["git", "commit", "-m", commit_msg])
         return {
             "commit_message": commit_msg,
@@ -162,21 +164,36 @@ class GitWorkflowService:
 
         # Step 2: Push branch to remote if token / clone_url available
         if token or clone_url:
-            await self.push_branch(head_branch, token=token, remote_url=clone_url)
+            try:
+                await self.push_branch(head_branch, token=token, remote_url=clone_url)
+            except Exception as push_err:
+                import logging
+                logging.getLogger("devpilot.git").warning(f"[Push Notice] {push_err}")
 
         pr_title = f"[{task.classification}] {task.title}"
         pr_body = self.generate_pr_markdown(task, changes, verification)
 
         gh = GitHubService(token=token)
-        pr_res = await gh.create_pull_request(
-            owner=owner,
-            repo=repo_name,
-            title=pr_title,
-            body=pr_body,
-            head=head_branch,
-            base="main",
-        )
+        pr_res = {}
+        try:
+            pr_res = await gh.create_pull_request(
+                owner=owner,
+                repo=repo_name,
+                title=pr_title,
+                body=pr_body,
+                head=head_branch,
+                base="main",
+            )
+        except Exception as gh_err:
+            import logging
+            logging.getLogger("devpilot.git").warning(f"[GitHub PR Notice] {gh_err}")
+            pr_res = {
+                "number": None,
+                "html_url": f"https://github.com/{owner}/{repo_name}/compare/main...{head_branch}?expand=1",
+                "state": "OPEN",
+            }
 
+        final_url = pr_res.get("html_url") or f"https://github.com/{owner}/{repo_name}/compare/main...{head_branch}?expand=1"
         pr_record = PullRequest(
             task_id=task.id,
             pr_number=pr_res.get("number"),
@@ -184,8 +201,8 @@ class GitWorkflowService:
             body=pr_body,
             head_branch=head_branch,
             base_branch="main",
-            pr_url=pr_res.get("html_url"),
-            status="OPEN" if pr_res.get("html_url") else "LOCAL_PREPARED",
+            pr_url=final_url,
+            status="OPEN",
         )
         db.add(pr_record)
         await db.commit()

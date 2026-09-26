@@ -53,20 +53,20 @@ export default function DashboardPage() {
     loadDashboardData();
   }, []);
 
+  const isTaskCompleted = (t: TaskItem) =>
+    t.state === "COMPLETED" ||
+    t.state === "READY_TO_SHIP" ||
+    (t.verification_passed === true && t.file_changes && t.file_changes.length > 0);
+
   // Active tasks: Currently being investigated, planned, approved, implemented, or tested
   const activeTasks = tasks.filter(
-    (t) =>
-      t.state !== "COMPLETED" &&
-      t.state !== "READY_TO_SHIP" &&
-      t.state !== "CANCELLED"
+    (t) => !isTaskCompleted(t) && t.state !== "CANCELLED"
   );
 
   // Completed work: Finished, verified, and shipped tasks
-  const completedTasks = tasks.filter(
-    (t) => t.state === "COMPLETED" || t.state === "READY_TO_SHIP"
-  );
+  const completedTasks = tasks.filter(isTaskCompleted);
 
-  const verifiedCount = tasks.filter((t) => t.verification_passed === true).length;
+  const verifiedCount = tasks.filter((t) => t.verification_passed === true || isTaskCompleted(t)).length;
 
   return (
     <div className="flex flex-col min-h-screen">

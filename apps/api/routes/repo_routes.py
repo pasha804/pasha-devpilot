@@ -599,8 +599,8 @@ Remediate detected defect **{payload.title}** ({issue_ident}) in `{target_file}`
         title=f"Resolve: {payload.title}",
         description=task_desc,
         classification=classification,
-        state="WAITING_FOR_APPROVAL",
-        current_mode="BUILD",
+        state="UNDERSTANDING",
+        current_mode="ANALYZE",
         plan_markdown=initial_plan,
     )
     db.add(task)
@@ -622,7 +622,7 @@ Remediate detected defect **{payload.title}** ({issue_ident}) in `{target_file}`
             step_number=num,
             name=name,
             description=desc,
-            status="COMPLETED" if num < 4 else ("RUNNING" if num == 4 else "PENDING"),
+            status="RUNNING" if num == 1 else "PENDING",
         )
         db.add(s)
 

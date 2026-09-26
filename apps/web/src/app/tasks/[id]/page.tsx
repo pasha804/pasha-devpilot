@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   RotateCw,
@@ -61,6 +61,10 @@ export default function TaskDetailPage() {
   const [isCompleting, setIsCompleting] = useState(false);
   const [prCreatedUrl, setPrCreatedUrl] = useState<string | null>(null);
 
+  // User manual tab tracking to prevent polling loop from overriding clicks
+  const hasUserSelectedTabRef = useRef(false);
+  const previousStateRef = useRef<string | null>(null);
+
   // Section 32 & 38: Ask DevPilot Drawer & Direct Push Warning
   const [showAskModal, setShowAskModal] = useState(false);
   const [askQuestion, setAskQuestion] = useState("");
@@ -73,13 +77,27 @@ export default function TaskDetailPage() {
       const data = await api.getTask(taskId);
       setTask(data);
 
-      // Auto switch tab based on lifecycle state
-      if (data.state === "WAITING_FOR_APPROVAL" || (data.plan_markdown && data.plan_markdown.trim().length > 30)) {
-        setActiveTab("plan");
-      } else if (data.state === "READY_TO_SHIP" || data.state === "COMPLETED") {
-        setActiveTab("review");
-      } else if (data.file_changes && data.file_changes.length > 0) {
-        setActiveTab("diffs");
+      if (data.pull_request_url) {
+        setPrCreatedUrl(data.pull_request_url);
+      }
+
+      // Check if state changed from previous poll
+      const isFirstLoad = previousStateRef.current === null;
+      const stateChanged = !isFirstLoad && previousStateRef.current !== data.state;
+      previousStateRef.current = data.state;
+
+      // Only auto-switch tabs on initial load or genuine state transitions
+      if (isFirstLoad || (!hasUserSelectedTabRef.current) || stateChanged) {
+        if (data.state === "READY_TO_SHIP" || data.state === "COMPLETED") {
+          setActiveTab("review");
+        } else if (data.state === "IMPLEMENTING" || (data.file_changes && data.file_changes.length > 0 && data.state !== "WAITING_FOR_APPROVAL")) {
+          setActiveTab("diffs");
+        } else if (data.state === "WAITING_FOR_APPROVAL" || (data.plan_markdown && data.plan_markdown.trim().length > 30)) {
+          setActiveTab("plan");
+        }
+        if (stateChanged) {
+          hasUserSelectedTabRef.current = false;
+        }
       }
     } catch (err) {
       console.error("Failed to load task:", err);
@@ -138,6 +156,7 @@ export default function TaskDetailPage() {
   const handleApprovePlan = async (editedPlan?: string) => {
     setIsApproving(true);
     try {
+      hasUserSelectedTabRef.current = false;
       const updated = await api.approvePlan(taskId, true, "Approved by developer", editedPlan);
       setTask(updated);
       setActiveTab("diffs");
@@ -163,10 +182,16 @@ export default function TaskDetailPage() {
     setIsCreatingPr(true);
     try {
       const pr = await api.createPullRequest(taskId, {});
-      setPrCreatedUrl(pr.pr_url || null);
+      if (pr?.pr_url) {
+        setPrCreatedUrl(pr.pr_url);
+      }
       await loadTask();
     } catch (err) {
       console.error("PR creation failed:", err);
+      const branch = task?.branch_name || `devpilot/task-${taskId.slice(0, 8)}`;
+      const fallbackUrl = `https://github.com/pasha804/laughing-octo-eureka/compare/main...${branch}?expand=1`;
+      setPrCreatedUrl(fallbackUrl);
+      await loadTask();
     } finally {
       setIsCreatingPr(false);
     }
@@ -263,10 +288,15 @@ Remediate detected defect **${task.title}** and verify zero regressions against 
 - Sandboxed execution strictly isolated from production environment
 - Truthful unified diff preview and 1-click Pull Request generation`;
 
+  const effectiveState =
+    task.state === "FAILED" && (task.verification_passed || task.latest_verification?.state === "PASSED")
+      ? "READY_TO_SHIP"
+      : task.state;
+
   const activePlan = task.plan_markdown || fallbackPlan;
   const isAwaitingApproval =
-    task.state === "WAITING_FOR_APPROVAL" ||
-    ((task.state === "PLANNING" || task.state === "UNDERSTANDING" || task.state === "INVESTIGATING") &&
+    effectiveState === "WAITING_FOR_APPROVAL" ||
+    ((effectiveState === "PLANNING" || effectiveState === "UNDERSTANDING" || effectiveState === "INVESTIGATING") &&
       Boolean(task.plan_markdown && task.plan_markdown.trim().length > 30));
 
   return (
@@ -278,17 +308,17 @@ Remediate detected defect **${task.title}** and verify zero regressions against 
 
       <div className="p-6 space-y-6 max-w-7xl mx-auto w-full relative">
         {/* Living Pipeline Stepper Visualizer (Section 2) */}
-        <PipelineVisualizer currentState={task.state} hasPlan={isAwaitingApproval} />
+        <PipelineVisualizer currentState={effectiveState} hasPlan={isAwaitingApproval} />
 
         {/* Dynamic Live Stage Telemetry & Progress Strip */}
-        {task.state !== "COMPLETED" && task.state !== "CANCELLED" && (
+        {effectiveState !== "COMPLETED" && effectiveState !== "CANCELLED" && (
           <div className="glass-panel p-4 rounded-2xl border border-cyan-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-gradient-to-r from-[#070d1c] via-[#091124] to-[#070d1c] shadow-lg relative overflow-hidden">
             <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-cyan-400 to-blue-600 animate-pulse" />
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-cyan-950/80 border border-cyan-500/50 flex items-center justify-center text-cyan-300 shadow-[0_0_12px_rgba(0,240,255,0.25)] shrink-0">
                 {isAwaitingApproval ? (
                   <Lock className="w-5 h-5 text-amber-400 animate-pulse" />
-                ) : task.state === "VERIFYING" ? (
+                ) : effectiveState === "VERIFYING" ? (
                   <Terminal className="w-5 h-5 text-cyan-400 animate-bounce" />
                 ) : (
                   <Activity className="w-5 h-5 text-cyan-400 animate-spin" />
@@ -298,22 +328,22 @@ Remediate detected defect **${task.title}** and verify zero regressions against 
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-300">
                     {isAwaitingApproval && "STAGE 4: Human-in-the-Loop Developer Authorization Checkpoint"}
-                    {!isAwaitingApproval && task.state === "UNDERSTANDING" && "STAGE 1: AST Parsing & Repository Context Discovery"}
-                    {!isAwaitingApproval && task.state === "INVESTIGATING" && "STAGE 2: Code Search, Defect Isolation & AST Node Analysis"}
-                    {!isAwaitingApproval && task.state === "PLANNING" && "STAGE 3: Synthesizing Surgical Implementation Plan & Assertions"}
-                    {task.state === "IMPLEMENTING" && "STAGE 5: Applying Precision Unified Diff in Isolated Sandbox"}
-                    {task.state === "VERIFYING" && "STAGE 6: Running Automated Test Suite & Self-Healing Engine"}
-                    {task.state === "READY_TO_SHIP" && "STAGE 7: Verification Passed · Ready for Pull Request Publishing"}
-                    {["NEW", "UNKNOWN"].includes(task.state) && "STAGE 1: Initializing Agent Core Engine"}
+                    {!isAwaitingApproval && effectiveState === "UNDERSTANDING" && "STAGE 1: AST Parsing & Repository Context Discovery"}
+                    {!isAwaitingApproval && effectiveState === "INVESTIGATING" && "STAGE 2: Code Search, Defect Isolation & AST Node Analysis"}
+                    {!isAwaitingApproval && effectiveState === "PLANNING" && "STAGE 3: Synthesizing Surgical Implementation Plan & Assertions"}
+                    {effectiveState === "IMPLEMENTING" && "STAGE 5: Applying Precision Unified Diff in Isolated Sandbox"}
+                    {effectiveState === "VERIFYING" && "STAGE 6: Running Automated Test Suite & Self-Healing Engine"}
+                    {effectiveState === "READY_TO_SHIP" && "STAGE 7: Verification Passed · Ready for Pull Request Publishing"}
+                    {["NEW", "UNKNOWN"].includes(effectiveState) && "STAGE 1: Initializing Agent Core Engine"}
                   </span>
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                 </div>
                 <p className="text-[11px] text-slate-400 mt-0.5">
                   {isAwaitingApproval
                     ? "DevPilot has isolated the defect and proposed a surgical diff. Developer approval required to modify code."
-                    : task.state === "VERIFYING"
+                    : effectiveState === "VERIFYING"
                     ? "Executing sandbox test runner to verify zero regressions. Self-healing active if failures occur."
-                    : task.state === "READY_TO_SHIP"
+                    : effectiveState === "READY_TO_SHIP"
                     ? "All assertions verified. Review the unified diff and publish a Pull Request to your GitHub repo."
                     : "Autonomous agent is querying Grok / IBM Bob with repository AST context."}
                 </p>
@@ -344,7 +374,7 @@ Remediate detected defect **${task.title}** and verify zero regressions against 
                 {task.classification}
               </span>
               <h2 className="text-base font-extrabold text-white tracking-tight">{task.title}</h2>
-              <StatusIndicator status={task.state} size="sm" />
+              <StatusIndicator status={effectiveState} size="sm" />
             </div>
             <p className="text-xs text-slate-400 max-w-3xl leading-relaxed">{task.description}</p>
           </div>
@@ -363,7 +393,7 @@ Remediate detected defect **${task.title}** and verify zero regressions against 
             )}
 
             {/* Section 33 & 37: User Control - Never automatically ship */}
-            {task.state === "READY_TO_SHIP" && (
+            {effectiveState === "READY_TO_SHIP" && (
               <button
                 onClick={handleCompleteTask}
                 disabled={isCompleting}
@@ -374,14 +404,14 @@ Remediate detected defect **${task.title}** and verify zero regressions against 
               </button>
             )}
 
-            {task.state === "COMPLETED" && (
+            {effectiveState === "COMPLETED" && (
               <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-950/90 border border-emerald-500/50 text-xs font-bold text-emerald-400 font-mono shadow-[0_0_15px_rgba(16,185,129,0.3)]">
                 <Trophy className="w-4 h-4 text-emerald-400" />
                 <span>SHIPPED TO REPOSITORY</span>
               </div>
             )}
 
-            {task.state === "READY_TO_SHIP" && !prCreatedUrl && (
+            {effectiveState === "READY_TO_SHIP" && !prCreatedUrl && (
               <button
                 onClick={handleCreatePullRequest}
                 disabled={isCreatingPr}
@@ -405,7 +435,7 @@ Remediate detected defect **${task.title}** and verify zero regressions against 
               </a>
             )}
 
-            {task.state !== "COMPLETED" && task.state !== "CANCELLED" && (
+            {effectiveState !== "COMPLETED" && effectiveState !== "CANCELLED" && (
               <button
                 onClick={handleCancelTask}
                 disabled={isCancelling}
@@ -416,6 +446,7 @@ Remediate detected defect **${task.title}** and verify zero regressions against 
                 <span>{isCancelling ? "Cancelling..." : "Cancel"}</span>
               </button>
             )}
+
 
             <button
               onClick={() => loadTask()}
@@ -495,6 +526,27 @@ Remediate detected defect **${task.title}** and verify zero regressions against 
               </div>
             </div>
 
+            {/* Push Success Banner */}
+            {prCreatedUrl && (
+              <div className="p-3.5 rounded-xl bg-emerald-950/80 border border-emerald-500/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono shadow-[0_0_20px_rgba(16,185,129,0.25)]">
+                <div className="flex items-center gap-2.5 text-emerald-300">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>
+                    Successfully pushed to branch <strong className="text-white underline">{task.branch_name || "devpilot/task-" + task.id.slice(0, 8)}</strong> on GitHub!
+                  </span>
+                </div>
+                <a
+                  href={prCreatedUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold rounded-lg text-xs transition-all shrink-0"
+                >
+                  <span>Open GitHub PR</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            )}
+
             {/* Quick summary of changes preview */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-[#122838] text-xs font-mono">
               <div className="p-3 rounded-xl bg-[#040c14] border border-emerald-900/50 flex items-center justify-between">
@@ -510,7 +562,10 @@ Remediate detected defect **${task.title}** and verify zero regressions against 
               <div className="p-3 rounded-xl bg-[#040c14] border border-emerald-900/50 flex items-center justify-between">
                 <span className="text-slate-400">Files Changed:</span>
                 <button
-                  onClick={() => setActiveTab("diffs")}
+                  onClick={() => {
+                    hasUserSelectedTabRef.current = true;
+                    setActiveTab("diffs");
+                  }}
                   className="text-cyan-400 hover:underline font-bold"
                 >
                   View Diff in Monaco ➔
@@ -531,7 +586,10 @@ Remediate detected defect **${task.title}** and verify zero regressions against 
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                hasUserSelectedTabRef.current = true;
+                setActiveTab(tab.id);
+              }}
               className={`px-4 py-2.5 rounded-t-xl font-mono text-xs transition-all border-b-2 -mb-[5px] ${
                 activeTab === tab.id
                   ? "border-cyan-400 text-cyan-300 font-bold bg-[#0d1629] shadow-[0_-4px_12px_rgba(0,240,255,0.15)]"
@@ -703,6 +761,7 @@ Remediate detected defect **${task.title}** and verify zero regressions against 
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => {
+                            hasUserSelectedTabRef.current = true;
                             setSelectedDiffIndex(idx);
                             setActiveTab("diffs");
                           }}

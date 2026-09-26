@@ -11,7 +11,7 @@ from sqlalchemy import select
 from ..core.database import get_db
 from ..core.security import decode_access_token
 from ..core.audit import record_audit_log
-from ..models.task import Task, TaskStep, FileChange, VerificationRun
+from ..models.task import Task, TaskStep, FileChange, VerificationRun, PullRequest
 from ..models.repository import Repository
 from ..models.user import User
 from ..schemas.task import TaskCreate, TaskResponse, PlanApprovalRequest, FileDiffItem, TaskStepItem, VerificationRunItem
@@ -64,12 +64,26 @@ async def list_tasks(
             t.state = "WAITING_FOR_APPROVAL"
             await db.commit()
 
+        # Auto-heal any task where verification passed but state was mistakenly marked FAILED
+        q_v_check = await db.execute(
+            select(VerificationRun).where(VerificationRun.task_id == t.id).order_by(VerificationRun.attempt_number.desc())
+        )
+        last_v_check = q_v_check.scalars().first()
+        if t.state == "FAILED" and last_v_check and last_v_check.state == "PASSED":
+            t.state = "READY_TO_SHIP"
+            await db.commit()
+
         # Load steps and changes
         q_steps = await db.execute(select(TaskStep).where(TaskStep.task_id == t.id).order_by(TaskStep.step_number.asc()))
         steps = q_steps.scalars().all()
 
         q_changes = await db.execute(select(FileChange).where(FileChange.task_id == t.id))
         changes = q_changes.scalars().all()
+
+        q_pr = await db.execute(
+            select(PullRequest).where(PullRequest.task_id == t.id).order_by(PullRequest.created_at.desc())
+        )
+        last_pr = q_pr.scalars().first()
 
         results.append(
             TaskResponse(
@@ -88,6 +102,7 @@ async def list_tasks(
                 updated_at=t.updated_at,
                 steps=[TaskStepItem(id=s.id, step_number=s.step_number, name=s.name, status=s.status, description=s.description) for s in steps],
                 file_changes=[FileDiffItem(file_path=c.file_path, change_type=c.change_type, unified_diff=c.unified_diff or "", original_content=c.original_content, new_content=c.new_content, is_reverted=c.is_reverted) for c in changes],
+                pull_request_url=last_pr.pr_url if last_pr else None,
             )
         )
     return results
@@ -190,6 +205,17 @@ async def get_task_details(task_id: str, db: AsyncSession = Depends(get_db)):
     all_v = q_v.scalars().all()
     last_v = all_v[0] if all_v else None
 
+    # Auto-heal any task where verification passed but state was mistakenly marked FAILED
+    if task.state == "FAILED" and last_v and last_v.state == "PASSED":
+        task.state = "READY_TO_SHIP"
+        task.current_mode = "REVIEW"
+        for s in steps:
+            if s.step_number <= 6:
+                s.status = "COMPLETED"
+            elif s.step_number == 7:
+                s.status = "RUNNING"
+        await db.commit()
+
     latest_v_item = None
     if last_v:
         latest_v_item = VerificationRunItem(
@@ -219,6 +245,11 @@ async def get_task_details(task_id: str, db: AsyncSession = Depends(get_db)):
         for v in all_v
     ]
 
+    q_pr = await db.execute(
+        select(PullRequest).where(PullRequest.task_id == task.id).order_by(PullRequest.created_at.desc())
+    )
+    last_pr = q_pr.scalars().first()
+
     return TaskResponse(
         id=task.id,
         repository_id=task.repository_id,
@@ -238,6 +269,7 @@ async def get_task_details(task_id: str, db: AsyncSession = Depends(get_db)):
         verification_passed=(last_v.state == "PASSED") if last_v else None,
         latest_verification=latest_v_item,
         verification_runs=v_run_items,
+        pull_request_url=last_pr.pr_url if last_pr else None,
     )
 
 
