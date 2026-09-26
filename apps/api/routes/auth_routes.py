@@ -9,6 +9,7 @@ Both paths call real GitHub APIs and store the real access token.
 """
 
 import re
+from typing import Optional, Dict, Any, List
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel
