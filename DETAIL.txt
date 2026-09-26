@@ -1,0 +1,72 @@
+================================================================================
+PASHA DEVPILOT — FAST REFERENCE & DEMO SUBMISSION SHEET
+================================================================================
+
+1. PROJECT METADATA
+--------------------------------------------------------------------------------
+Project Name     : Pasha DevPilot
+Tagline          : "Your Autonomous AI Software Engineer"
+Core Philosophy  : "Understand. Plan. Build. Verify. Ship."
+Target Hackathon : IBM Bob 2.0 Hackathon on lablab.ai
+Primary Provider : IBM Bob (BobProvider, bob-code-plus model)
+Fallback Engine  : DeepSeek V4 Flash via CleanAPIs / Groq llama-3.3-70b-versatile
+Live Web UI      : https://web-production-787ab.up.railway.app
+Live API Endpoint: https://api-production-508f.up.railway.app
+API Health Check : https://api-production-508f.up.railway.app/api/v1/health
+Primary GitHub   : https://github.com/pashatech/pasha-devpilot (or user account)
+Demo Target Repo : https://github.com/pasha804/laughing-octo-eureka
+
+2. 30-SECOND ELEVATOR PITCH
+--------------------------------------------------------------------------------
+"Most AI coding assistants only write code snippets inside an editor and leave 
+the messy debugging, broken tests, and git conflicts to the developer. 
+Pasha DevPilot is different. Built as a production-grade extension for IBM Bob, 
+DevPilot takes a GitHub issue or repository defect, builds an AST symbol graph, 
+diagnoses the root cause, requests human approval, applies unified diffs inside 
+a locked-down sandbox jail, and autonomously self-heals by running real unit 
+tests until they turn green. Once verified, it ships a clean Pull Request 
+directly to GitHub. It's not a chatbot—it's an autonomous AI software engineer."
+
+3. 7-STATE MACHINE AT A GLANCE
+--------------------------------------------------------------------------------
+Stage 1: UNDERSTANDING         -> Clones repo into sandbox jail, parses AST syntax tree
+Stage 2: INVESTIGATING         -> Runs test harness, isolates root cause with IBM Bob
+Stage 3: PLANNING              -> Generates multi-file step-by-step implementation plan
+Stage 4: WAITING_FOR_APPROVAL  -> HUMAN-IN-THE-LOOP GATE: Pauses execution until approved
+Stage 5: IMPLEMENTING          -> Applies unified diff patches in isolated sandbox
+Stage 6: VERIFYING             -> Runs real pytest suite; self-heals up to 3 attempts
+Stage 7: REVIEWING / SHIP      -> Monaco Diff Editor + automated GitHub Pull Request
+
+4. DEMO REPOSITORY DETAILS (laughing-octo-eureka)
+--------------------------------------------------------------------------------
+Repo URL    : https://github.com/pasha804/laughing-octo-eureka
+Tech Stack  : Python 3.10+, pytest, dataclasses
+Seeded Bugs :
+  1. src/auth_service.py: Inverted token expiration logic (">" instead of "<").
+     Rejects valid active tokens as expired. Causes 3 test failures in test_auth.py.
+  2. src/billing_service.py: Promotional discount added instead of subtracted.
+     Overcharges discounted customers. Fails test_calculate_invoice_with_promotional_discount.
+Initial Pytest: 4 failed, 3 passed.
+Target State  : 7 passed, 0 failed, 100% green verification.
+
+5. SANDBOX SECURITY GUARDRAILS
+--------------------------------------------------------------------------------
+- Directory Traversal Guard: Blocks any path containing "../" or outside sandbox root.
+- Command Allowlist: Only approved binaries execute (pytest, npm test, git).
+- Prohibited Commands: rm, del, format, shutdown, curl | bash, wget | sh.
+- Blocked Git Actions: git push --force, git clean -f, git reset --hard.
+- Secret Masking: ghp_*, sk-*, and JWT tokens automatically redacted in all UI logs.
+
+6. ONE-CLICK LOCAL LAUNCH
+--------------------------------------------------------------------------------
+Windows : .\start.bat
+Manual  :
+  Terminal 1 (Backend) : python -m uvicorn apps.api.main:app --host 0.0.0.0 --port 8000 --reload
+  Terminal 2 (Frontend): cd apps/web && npm run dev
+Docker  :
+  docker build -t pasha-devpilot-api -f apps/api/Dockerfile .
+  docker run -p 8000:8000 --env-file .env pasha-devpilot-api
+
+================================================================================
+END OF FAST REFERENCE SHEET
+================================================================================

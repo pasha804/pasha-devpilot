@@ -67,7 +67,8 @@ repos/
 # IDE & OS
 .vscode/
 .idea/
-.DS_Store
-Thumbs.db
-*.log
-
+# Internal hackathon planning & local guides (keep local only)
+HACKATHON_GUIDE.md
+devpilot-hackathon-plan.md
+devpilot_implementation_plan.md
+temp_target/

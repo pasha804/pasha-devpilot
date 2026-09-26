@@ -1,13 +1,34 @@
 # Pasha DevPilot 🚀
 
-> **Your AI Software Engineer.**  
+> **Your Autonomous AI Software Engineer.**  
 > *Understand. Plan. Build. Verify. Ship.*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Powered by IBM Bob](https://img.shields.io/badge/AI%20Backbone-IBM%20Bob-052FAD?logo=ibm)](https://bob.ibm.com)
 [![Next.js 15](https://img.shields.io/badge/Frontend-Next.js%2015-black?logo=next.js)](https://nextjs.org)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi)](https://fastapi.tiangolo.com)
-[![Deployment](https://img.shields.io/badge/Cloud-Railway%20Multi--Service-purple?logo=railway)](https://railway.app)
+[![Deployment](https://img.shields.io/badge/Cloud-Railway%20Live-purple?logo=railway)](https://web-production-787ab.up.railway.app)
+[![Target Repo](https://img.shields.io/badge/Demo%20Repo-laughing--octo--eureka-green?logo=github)](https://github.com/pasha804/laughing-octo-eureka)
+
+---
+
+### 🌐 Live Production Deployments & Links
+
+| Service | Environment | Live URL | Status |
+|---|---|---|---|
+| **Pasha DevPilot Web Station** | Railway Production | [web-production-787ab.up.railway.app](https://web-production-787ab.up.railway.app) | 🟢 **Live & Online** |
+| **Pasha DevPilot REST API** | Railway Production | [api-production-508f.up.railway.app](https://api-production-508f.up.railway.app) | 🟢 **Live & Online** |
+| **API Health Telemetry** | Railway Production | [api-production-508f.up.railway.app/api/v1/health](https://api-production-508f.up.railway.app/api/v1/health) | 🟢 **Healthy (JSON)** |
+| **Live Target Demo Repo** | GitHub | [pasha804/laughing-octo-eureka](https://github.com/pasha804/laughing-octo-eureka) | 🟢 **Connected** |
+
+### 📚 Core Project Documentation
+
+- 📄 **[PRD.md](PRD.md)** — Comprehensive Product Requirements Document & Specifications
+- 📘 **[DOCUMENTATION.md](DOCUMENTATION.md)** — Full Technical Architecture, Sandbox Security & API Reference
+- 🎬 **[DEMO_SCRIPT.md](DEMO_SCRIPT.md)** — Word-by-word timestamped video recording script (English)
+- 📝 **[DETAIL.txt](DETAIL.txt)** — Plain-text quick reference sheet for hackathon forms & elevator pitch
+- 📊 **[Interactive Presentation (Browser)](presentation.html)** / **[PowerPoint Slides (PPTX)](Pasha_DevPilot_Presentation.pptx)**
+- 🤖 **[SKILL.md](SKILL.md)** — Official IBM Bob Skill Marketplace package
 
 ---
 
