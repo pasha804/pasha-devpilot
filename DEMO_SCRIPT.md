@@ -100,15 +100,20 @@
 - Transitions to `VERIFYING` (State 6).
 - Live sandbox terminal streams the real test run:  
   `pytest tests/ -v`
-- Watch assertions turn green one by one:
-  - `test_valid_fresh_token PASSED [50%]`
-  - `test_expired_token PASSED [100%]`
-  - **Banner: `2 passed in 0.12s · 100% Test Suite Passage`**.
+- Watch assertions turn green:
+  - `tests/test_auth.py::test_issue_and_verify_valid_token PASSED`
+  - `tests/test_auth.py::test_revoked_token_raises_error PASSED`
+  - `tests/test_auth.py::test_expired_token_rejected PASSED`
+  - `tests/test_auth.py::test_missing_scope_raises_error PASSED`
+  - `tests/test_billing.py::test_account_registration_and_credits PASSED`
+  - `tests/test_billing.py::test_insufficient_credits_raises_error PASSED`
+  - `tests/test_billing.py::test_calculate_invoice_with_promotional_discount PASSED`
+  - **Banner: `7 passed in 0.04s · 100% Test Suite Passage`**.
 
 **Spoken Script:**
-> *"In State 5: **IMPLEMENTING**, DevPilot applies surgical unified diffs inside the isolated sandbox.
+> *"In State 5: **IMPLEMENTING**, DevPilot applies surgical unified diffs inside the isolated sandbox to both `src/auth_service.py` and `src/billing_service.py`.
 >
-> Next, in State 6: **VERIFYING**, DevPilot runs the real pytest suite. If any test fails, our bounded self-healing engine analyzes the compiler traceback and iterates up to three attempts. But IBM Bob's patch is surgically precise on the first try — all tests pass with zero regressions!"*
+> Next, in State 6: **VERIFYING**, DevPilot runs the real pytest suite. If any test fails, our bounded self-healing engine analyzes the compiler traceback and repairs the code across multiple attempts. All 7 unit tests pass with zero regressions in under a tenth of a second!"*
 
 ---
 
@@ -117,15 +122,19 @@
 **Visuals & Screen Action:**
 - Navigate to the **Review Workspace** & **Monaco Diff Viewer**.
 - Show side-by-side syntax-highlighted diff:
-  - Red line deleted: `- return current_timestamp < (token.created_at + expires_in)`
-  - Green line added: `+ return current_timestamp > (token.created_at + expires_in)`
+  - In `src/auth_service.py`:
+    - Red line deleted: `- if token.expires_at > now:`
+    - Green line added: `+ if token.expires_at < now:`
+  - In `src/billing_service.py`:
+    - Red line deleted: `- discounted_subtotal = subtotal + discount_amount`
+    - Green line added: `+ discounted_subtotal = subtotal - discount_amount`
 - Scroll to the glowing green banner:  
-  `✓ AI Fixes Completed · Ready to Push (1 file modified)`
+  `✓ AI Fixes Completed · Ready to Push (2 files modified)`
 - **CLICK THE SINGLE BUTTON**: **"Push Changes to GitHub"**.
 - Watch the button transition: `Pushing to GitHub...` ➔ `✓ View Shipped PR on GitHub ↗`.
 
 **Spoken Script:**
-> *"In State 7: **REVIEWING**, the developer inspects the changes in our integrated Monaco Diff Editor. Every single line added and deleted is crystal clear.
+> *"In State 7: **REVIEWING**, the developer inspects the changes in our integrated Monaco Diff Editor. Every single line added and deleted is crystal clear across all modified service files.
 >
 > And here is the magic: with this single button — **Push Changes to GitHub** — DevPilot commits the verified diffs to a clean branch, pushes to remote GitHub, and publishes a real Pull Request."*
 
