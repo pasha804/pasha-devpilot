@@ -27,7 +27,7 @@
 - 📘 **[DOCUMENTATION.md](DOCUMENTATION.md)** — Full Technical Architecture, Sandbox Security & API Reference
 - 🎬 **[DEMO_SCRIPT.md](DEMO_SCRIPT.md)** — Word-by-word timestamped video recording script (English)
 - 📝 **[DETAIL.txt](DETAIL.txt)** — Plain-text quick reference sheet for hackathon forms & elevator pitch
-- 📊 **[Interactive Presentation (Browser)](presentation.html)** / **[PowerPoint Slides (PPTX)](Pasha_DevPilot_Presentation.pptx)**
+- 📊 **[Interactive Presentation (Browser)](presentation.html)** / **[PowerPoint Slides (PPTX)](Pasha_DevPilot_Deck.pptx)**
 - 🤖 **[SKILL.md](SKILL.md)** — Official IBM Bob Skill Marketplace package
 
 ---
@@ -175,7 +175,73 @@ Max Attempts Reached? ➔ Mark Verification FAILED (Truthful reporting, no false
 
 ---
 
-## 10. Deployment (Railway Multi-Service)
+## 10. Live Case Study: Autonomous Repair of `laughing-octo-eureka`
+
+To prove Pasha DevPilot's full end-to-end capabilities under real-world conditions, a live OAuth2 and billing microservice repository is connected and available on GitHub:
+
+👉 **[https://github.com/pasha804/laughing-octo-eureka](https://github.com/pasha804/laughing-octo-eureka)**
+
+### The Seeded Production Defects
+This repository contains two classic, subtle logic bugs that first-generation AI assistants consistently miss:
+
+1. **`src/auth_service.py` — Inverted Token Expiration Check**:
+   ```python
+   # DEFECT: Developer used '>' instead of '<'
+   if token.expires_at > now:
+       raise TokenExpiredError(f"Token '{token_id}' expired at {token.expires_at}.")
+   ```
+   *Impact:* Rejects all freshly issued, active tokens as "expired", while erroneously accepting truly expired tokens from the past! Fails 3 unit tests in `test_auth.py`.
+
+2. **`src/billing_service.py` — Discount Calculation Addition**:
+   ```python
+   # DEFECT: Promotional discount added instead of subtracted
+   discounted_subtotal = subtotal + discount_amount
+   ```
+   *Impact:* Overcharges customers with discounts (charges $132 instead of $88 on a $100 invoice with 20% discount). Fails `test_calculate_invoice_with_promotional_discount`.
+
+### Baseline Test Run (Pytest Exit Code 1)
+```text
+============================= test session starts =============================
+collected 7 items
+tests/test_auth.py::test_issue_and_verify_valid_token FAILED
+tests/test_auth.py::test_revoked_token_raises_error PASSED
+tests/test_auth.py::test_expired_token_rejected FAILED
+tests/test_auth.py::test_missing_scope_raises_error FAILED
+tests/test_billing.py::test_account_registration_and_credits PASSED
+tests/test_billing.py::test_insufficient_credits_raises_error PASSED
+tests/test_billing.py::test_calculate_invoice_with_promotional_discount FAILED
+
+========================= 4 failed, 3 passed in 0.42s =========================
+```
+
+### Pasha DevPilot's Autonomous Remediation
+1. **Understands AST Symbols**: Indexes `AuthService`, `BillingService`, `User`, `AuthToken`.
+2. **Investigates Tracebacks**: Isolates the inverted operator on line 68 and the arithmetic addition on line 58.
+3. **Synthesizes 2-Step Plan**: Enters `WAITING_FOR_APPROVAL` for developer sign-off.
+4. **Applies Surgical Unified Diffs**: Flips `>` to `<` in `auth_service.py` and `+` to `-` in `billing_service.py`.
+5. **Verifies in Sandbox**: Executes `pytest tests/ -v`:
+   ```text
+   ========================= 7 passed in 0.38s (100% Green) =========================
+   ```
+6. **Ships Pull Request**: Automatically pushes branch `devpilot/fix-auth-billing-defects` and authors a signed GitHub PR!
+
+---
+
+## 11. Presentation Decks & Media
+
+Pasha DevPilot includes two presentation formats:
+
+- 🌐 **[Interactive Browser Presentation (`presentation.html`)](presentation.html)**:
+  - Built with modern cyber-dark aesthetics, glowing SVG pulse nodes, and glassmorphism.
+  - Interactive keyboard navigation: Press `Right Arrow` / `Space` for next slide, `Left Arrow` for previous.
+  - Press **`N`** to toggle live **Speaker Notes** for judging pitches.
+- 📊 **[PowerPoint Pitch Deck (`Pasha_DevPilot_Deck.pptx`)](Pasha_DevPilot_Deck.pptx)**:
+  - 11 widescreen (16:9) slides formatted with custom shapes, color-coded status badges, and bullet callouts.
+  - Follows the exact pitch sequence: **Product ➔ Problem ➔ Solution ➔ 7-State FSM ➔ Human Gate ➔ Security Jail ➔ Live Case Study ➔ IBM Bob ➔ Cloud Production ➔ Business ROI ➔ Conclusion**.
+
+---
+
+## 12. Deployment (Railway Multi-Service)
 
 Pasha DevPilot is designed for deployment as a single **Railway Project** comprising 5 interconnected services:
 
