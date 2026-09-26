@@ -56,18 +56,23 @@ async def run_investigation_worker(task_id: str, repo_id: str, repo_path: str, d
             async def on_event(ev: OrchestratorEvent):
                 # Synchronize live state to PostgreSQL database
                 try:
-                    if ev.event_type == "state_change":
+                    if ev.event_type in ("state_change", "plan_ready"):
                         async with AsyncSessionLocal() as s_db:
                             q_st = await s_db.execute(select(Task).where(Task.id == task_id))
                             t_st = q_st.scalars().first()
                             if t_st:
                                 t_st.state = ev.state.value
+                                if ev.payload and ev.payload.get("plan"):
+                                    t_st.plan_markdown = ev.payload["plan"]
                                 # Update steps
                                 step_nums = {
                                     "UNDERSTANDING": 1,
                                     "INVESTIGATING": 2,
                                     "PLANNING": 3,
                                     "WAITING_FOR_APPROVAL": 4,
+                                    "IMPLEMENTING": 5,
+                                    "VERIFYING": 6,
+                                    "READY_TO_SHIP": 7,
                                 }
                                 cur_num = step_nums.get(ev.state.value, 1)
                                 q_steps = await s_db.execute(select(TaskStep).where(TaskStep.task_id == task_id))
@@ -104,10 +109,14 @@ async def run_investigation_worker(task_id: str, repo_id: str, repo_path: str, d
                 event_callback=on_event,
             )
 
-            # Persist plan to task record
-            task.state = "WAITING_FOR_APPROVAL"
-            task.plan_markdown = result["plan"]
-            await db.commit()
+            # Persist plan to task record using fresh session to avoid stale state
+            async with AsyncSessionLocal() as final_db:
+                q_f = await final_db.execute(select(Task).where(Task.id == task_id))
+                t_final = q_f.scalars().first()
+                if t_final:
+                    t_final.state = "WAITING_FOR_APPROVAL"
+                    t_final.plan_markdown = result.get("plan", "")
+                    await final_db.commit()
             await record_audit_log(db, action="PLAN_GENERATED", resource_type="TASK", resource_id=task_id)
 
     except Exception as exc:
