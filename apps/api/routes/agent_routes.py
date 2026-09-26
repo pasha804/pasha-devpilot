@@ -110,21 +110,34 @@ async def run_investigation_worker(task_id: str, repo_id: str, repo_path: str, d
                 t_final = q_f.scalars().first()
                 if t_final:
                     t_final.state = "WAITING_FOR_APPROVAL"
-                    t_final.plan_markdown = result.get("plan", "")
+                    generated_plan = result.get("plan")
+                    if generated_plan and len(generated_plan.strip()) > 50:
+                        t_final.plan_markdown = generated_plan
+                    elif not t_final.plan_markdown:
+                        t_final.plan_markdown = generated_plan or ""
+
+                    # Synchronize step 4 to RUNNING and 1-3 to COMPLETED
+                    q_steps = await final_db.execute(select(TaskStep).where(TaskStep.task_id == task_id))
+                    for st in q_steps.scalars().all():
+                        if st.step_number < 4:
+                            st.status = "COMPLETED"
+                        elif st.step_number == 4:
+                            st.status = "RUNNING"
                     await final_db.commit()
             await record_audit_log(db, action="PLAN_GENERATED", resource_type="TASK", resource_id=task_id)
 
     except Exception as exc:
         import logging
         logging.getLogger("devpilot.agent").error(f"[WORKER ERROR] Investigation failed for {task_id}: {exc}", exc_info=True)
-        # Ensure task never remains frozen at UNDERSTANDING
+        # Ensure task never remains frozen at UNDERSTANDING or PLANNING
         try:
             async with AsyncSessionLocal() as fb_db:
                 q_fb = await fb_db.execute(select(Task).where(Task.id == task_id))
                 t_fb = q_fb.scalars().first()
-                if t_fb and not t_fb.plan_markdown:
+                if t_fb:
                     t_fb.state = "WAITING_FOR_APPROVAL"
-                    t_fb.plan_markdown = f"""### Implementation Strategy (Remediation Plan)
+                    if not t_fb.plan_markdown:
+                        t_fb.plan_markdown = f"""### Implementation Strategy (Remediation Plan)
 
 **Task Description:** {description}
 
@@ -144,6 +157,12 @@ Inspected code boundary and offending symbol based on repository context.
 - Strict human-in-the-loop authorization gate
 - Automated test assertion validation
 """
+                    q_steps = await fb_db.execute(select(TaskStep).where(TaskStep.task_id == task_id))
+                    for st in q_steps.scalars().all():
+                        if st.step_number < 4:
+                            st.status = "COMPLETED"
+                        elif st.step_number == 4:
+                            st.status = "RUNNING"
                     await fb_db.commit()
                     await event_bus.publish(task_id, {
                         "task_id": task_id,

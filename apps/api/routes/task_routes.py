@@ -59,6 +59,11 @@ async def list_tasks(
 
     results = []
     for t in tasks:
+        # Auto-heal any task that has a formulated plan but got stuck in PLANNING, UNDERSTANDING, or INVESTIGATING
+        if t.state in ("PLANNING", "UNDERSTANDING", "INVESTIGATING") and t.plan_markdown and len(t.plan_markdown.strip()) > 30:
+            t.state = "WAITING_FOR_APPROVAL"
+            await db.commit()
+
         # Load steps and changes
         q_steps = await db.execute(select(TaskStep).where(TaskStep.task_id == t.id).order_by(TaskStep.step_number.asc()))
         steps = q_steps.scalars().all()
@@ -165,6 +170,16 @@ async def get_task_details(task_id: str, db: AsyncSession = Depends(get_db)):
 
     q_steps = await db.execute(select(TaskStep).where(TaskStep.task_id == task.id).order_by(TaskStep.step_number.asc()))
     steps = q_steps.scalars().all()
+
+    # Auto-heal any task that has a formulated plan but got stuck in PLANNING, UNDERSTANDING, or INVESTIGATING
+    if task.state in ("PLANNING", "UNDERSTANDING", "INVESTIGATING") and task.plan_markdown and len(task.plan_markdown.strip()) > 30:
+        task.state = "WAITING_FOR_APPROVAL"
+        for s in steps:
+            if s.step_number < 4:
+                s.status = "COMPLETED"
+            elif s.step_number == 4:
+                s.status = "RUNNING"
+        await db.commit()
 
     q_changes = await db.execute(select(FileChange).where(FileChange.task_id == task.id))
     changes = q_changes.scalars().all()

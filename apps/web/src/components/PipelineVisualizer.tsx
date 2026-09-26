@@ -87,7 +87,7 @@ const STEPS: PipelineStep[] = [
   },
 ];
 
-export function PipelineVisualizer({ currentState }: { currentState: string }) {
+export function PipelineVisualizer({ currentState, hasPlan }: { currentState: string; hasPlan?: boolean }) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const stateUpper = (currentState || "NEW").toUpperCase();
 
@@ -95,11 +95,11 @@ export function PipelineVisualizer({ currentState }: { currentState: string }) {
     switch (key) {
       case "NEW":
       case "UNDERSTANDING":
-        return 0;
+        return hasPlan ? 3 : 0;
       case "INVESTIGATING":
-        return 1;
+        return hasPlan ? 3 : 1;
       case "PLANNING":
-        return 2;
+        return hasPlan ? 3 : 2;
       case "WAITING_FOR_APPROVAL":
         return 3;
       case "IMPLEMENTING":

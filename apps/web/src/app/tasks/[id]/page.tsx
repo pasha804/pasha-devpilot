@@ -74,7 +74,7 @@ export default function TaskDetailPage() {
       setTask(data);
 
       // Auto switch tab based on lifecycle state
-      if (data.state === "WAITING_FOR_APPROVAL") {
+      if (data.state === "WAITING_FOR_APPROVAL" || (data.plan_markdown && data.plan_markdown.trim().length > 30)) {
         setActiveTab("plan");
       } else if (data.state === "READY_TO_SHIP" || data.state === "COMPLETED") {
         setActiveTab("review");
@@ -264,6 +264,10 @@ Remediate detected defect **${task.title}** and verify zero regressions against 
 - Truthful unified diff preview and 1-click Pull Request generation`;
 
   const activePlan = task.plan_markdown || fallbackPlan;
+  const isAwaitingApproval =
+    task.state === "WAITING_FOR_APPROVAL" ||
+    ((task.state === "PLANNING" || task.state === "UNDERSTANDING" || task.state === "INVESTIGATING") &&
+      Boolean(task.plan_markdown && task.plan_markdown.trim().length > 30));
 
   return (
     <div className="flex flex-col min-h-screen cyber-bg text-slate-100 selection:bg-cyan-500/30 selection:text-cyan-200">
@@ -274,7 +278,7 @@ Remediate detected defect **${task.title}** and verify zero regressions against 
 
       <div className="p-6 space-y-6 max-w-7xl mx-auto w-full relative">
         {/* Living Pipeline Stepper Visualizer (Section 2) */}
-        <PipelineVisualizer currentState={task.state} />
+        <PipelineVisualizer currentState={task.state} hasPlan={isAwaitingApproval} />
 
         {/* Dynamic Live Stage Telemetry & Progress Strip */}
         {task.state !== "COMPLETED" && task.state !== "CANCELLED" && (
@@ -282,7 +286,7 @@ Remediate detected defect **${task.title}** and verify zero regressions against 
             <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-cyan-400 to-blue-600 animate-pulse" />
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-cyan-950/80 border border-cyan-500/50 flex items-center justify-center text-cyan-300 shadow-[0_0_12px_rgba(0,240,255,0.25)] shrink-0">
-                {task.state === "WAITING_FOR_APPROVAL" ? (
+                {isAwaitingApproval ? (
                   <Lock className="w-5 h-5 text-amber-400 animate-pulse" />
                 ) : task.state === "VERIFYING" ? (
                   <Terminal className="w-5 h-5 text-cyan-400 animate-bounce" />
@@ -293,10 +297,10 @@ Remediate detected defect **${task.title}** and verify zero regressions against 
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-300">
-                    {task.state === "UNDERSTANDING" && "STAGE 1: AST Parsing & Repository Context Discovery"}
-                    {task.state === "INVESTIGATING" && "STAGE 2: Code Search, Defect Isolation & AST Node Analysis"}
-                    {task.state === "PLANNING" && "STAGE 3: Synthesizing Surgical Implementation Plan & Assertions"}
-                    {task.state === "WAITING_FOR_APPROVAL" && "STAGE 4: Human-in-the-Loop Developer Authorization Checkpoint"}
+                    {isAwaitingApproval && "STAGE 4: Human-in-the-Loop Developer Authorization Checkpoint"}
+                    {!isAwaitingApproval && task.state === "UNDERSTANDING" && "STAGE 1: AST Parsing & Repository Context Discovery"}
+                    {!isAwaitingApproval && task.state === "INVESTIGATING" && "STAGE 2: Code Search, Defect Isolation & AST Node Analysis"}
+                    {!isAwaitingApproval && task.state === "PLANNING" && "STAGE 3: Synthesizing Surgical Implementation Plan & Assertions"}
                     {task.state === "IMPLEMENTING" && "STAGE 5: Applying Precision Unified Diff in Isolated Sandbox"}
                     {task.state === "VERIFYING" && "STAGE 6: Running Automated Test Suite & Self-Healing Engine"}
                     {task.state === "READY_TO_SHIP" && "STAGE 7: Verification Passed · Ready for Pull Request Publishing"}
@@ -305,7 +309,7 @@ Remediate detected defect **${task.title}** and verify zero regressions against 
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                 </div>
                 <p className="text-[11px] text-slate-400 mt-0.5">
-                  {task.state === "WAITING_FOR_APPROVAL"
+                  {isAwaitingApproval
                     ? "DevPilot has isolated the defect and proposed a surgical diff. Developer approval required to modify code."
                     : task.state === "VERIFYING"
                     ? "Executing sandbox test runner to verify zero regressions. Self-healing active if failures occur."
@@ -347,7 +351,7 @@ Remediate detected defect **${task.title}** and verify zero regressions against 
 
           <div className="flex items-center gap-2.5 flex-wrap">
             {/* Section 19 & 20: Human In The Loop Approval Action in Command Bar */}
-            {task.state === "WAITING_FOR_APPROVAL" && (
+            {isAwaitingApproval && (
               <button
                 onClick={() => handleApprovePlan()}
                 disabled={isApproving}
@@ -424,7 +428,7 @@ Remediate detected defect **${task.title}** and verify zero regressions against 
         </div>
 
         {/* Human In The Loop Approval Gate Notice (Section 19 & 20) */}
-        {task.state === "WAITING_FOR_APPROVAL" && (
+        {isAwaitingApproval && (
           <ApprovalDialog
             planMarkdown={activePlan}
             onApprove={handleApprovePlan}
