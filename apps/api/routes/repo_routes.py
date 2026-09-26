@@ -563,14 +563,12 @@ async def resolve_repository_issue(
     snippet = payload.code_snippet or payload.evidence or ""
     issue_ident = payload.issue_id or payload.id or "ISSUE-001"
 
-    task_desc = (
-        f"{payload.description}\n\n"
-        f"Issue ID: {issue_ident}\n"
-        f"Target File: {target_file}"
-        + (f":{target_line}" if target_line else "")
-        + (f"\nSuggested Fix: {fix_suggestion}" if fix_suggestion else "")
-        + (f"\n\nOffending Code Snippet:\n```\n{snippet}\n```" if snippet else "")
-    )
+    target_line_str = f":{target_line}" if target_line else ""
+    fix_suggestion_str = f"\nSuggested Fix: {fix_suggestion}" if fix_suggestion else ""
+    snippet_str = f"\n\nOffending Code Snippet:\n```\n{snippet}\n```" if snippet else ""
+    offending_code_block = f"- **Offending Code:**\n```\n{snippet}\n```" if snippet else ""
+
+    task_desc = f"{payload.description}\n\nIssue ID: {issue_ident}\nTarget File: {target_file}{target_line_str}{fix_suggestion_str}{snippet_str}"
 
     initial_plan = f"""### Implementation Strategy (Remediation Plan)
 
@@ -578,10 +576,10 @@ async def resolve_repository_issue(
 Remediate detected defect **{payload.title}** ({issue_ident}) in `{target_file}` and verify zero regressions against the repository test suite.
 
 #### 2. Root Cause Analysis
-- **Target File:** `{target_file}`{f':{target_line}' if target_line else ''}
+- **Target File:** `{target_file}`{target_line_str}
 - **Defect Category:** `{classification}`
 - **Observed Behavior:** {payload.description}
-{f"- **Offending Code:**\n```\n{snippet}\n```" if snippet else ""}
+{offending_code_block}
 
 #### 3. Targeted Remediation Steps
 1. Checkout isolated task branch `devpilot/task-branch`
