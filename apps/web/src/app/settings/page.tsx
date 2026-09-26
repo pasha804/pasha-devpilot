@@ -13,6 +13,8 @@ import {
   ShieldCheck,
   ExternalLink,
   AlertTriangle,
+  RotateCcw,
+  Sparkles,
 } from "lucide-react";
 import { Topbar } from "@/components/Topbar";
 import { api, PlatformSettings, ProjectMemory, UserProfile } from "@/lib/api";
@@ -67,6 +69,9 @@ export default function SettingsPage() {
     }
   };
 
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
+
   const handleDisconnectGitHub = async () => {
     try {
       await api.disconnectGitHub();
@@ -75,6 +80,25 @@ export default function SettingsPage() {
       setTimeout(() => setDisconnectSuccess(false), 3000);
     } catch (err) {
       console.error("Disconnect GitHub failed:", err);
+    }
+  };
+
+  const handleResetDemo = async () => {
+    if (!window.confirm("Are you sure you want to completely erase all tasks, repositories, symbols, and demo data? This gives you a 100% clean slate for recording your demo.")) {
+      return;
+    }
+    setIsResetting(true);
+    try {
+      await api.resetDemoData();
+      setResetSuccess(true);
+      setUserProfile(null);
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 1500);
+    } catch (err) {
+      console.error("Reset demo failed:", err);
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -223,6 +247,65 @@ export default function SettingsPage() {
               </Link>
             </div>
           )}
+        </div>
+
+        {/* Section 0.5: Demo Recording Reset & Clean Slate */}
+        <div className="p-6 rounded-xl bg-gradient-to-r from-purple-950/20 via-[#0b1220] to-indigo-950/20 border border-purple-800/40 space-y-4 shadow-sm">
+          <div className="flex items-center justify-between pb-3 border-b border-[#16233a]">
+            <div className="flex items-center gap-2.5">
+              <Sparkles className="w-5 h-5 text-purple-400" />
+              <div>
+                <h3 className="text-sm font-bold text-slate-100">🎬 Demo Video Mode & Clean Slate Reset</h3>
+                <p className="text-xs text-slate-400">
+                  Wipe all stored database records (tasks, repos, diffs, sessions) to record a fresh, authentic demo video.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleResetDemo}
+              disabled={isResetting}
+              className="px-4 py-2 rounded-lg bg-rose-950/60 hover:bg-rose-900 border border-rose-800 text-rose-200 text-xs font-semibold flex items-center gap-2 transition-all shadow-sm active:scale-95 disabled:opacity-50"
+            >
+              <RotateCcw className={`w-3.5 h-3.5 ${isResetting ? "animate-spin" : ""}`} />
+              <span>{isResetting ? "Erasing Database..." : "Reset All Demo Data & Sign Out"}</span>
+            </button>
+          </div>
+
+          {resetSuccess && (
+            <div className="p-3 rounded-lg bg-emerald-950/50 border border-emerald-800 text-xs text-emerald-300 font-medium">
+              ✅ All demo data, tasks, repositories, and active sessions have been wiped! Redirecting to home page...
+            </div>
+          )}
+
+          <div className="p-4 rounded-lg bg-[#070b14] border border-[#16233a] space-y-3">
+            <h4 className="text-xs font-bold text-slate-200 flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-purple-900/60 text-purple-300 flex items-center justify-center text-[10px] font-mono">ℹ</span>
+              How to Record the Real GitHub Authorization Step in Your Video:
+            </h4>
+            <div className="space-y-2 text-xs text-slate-300">
+              <p>
+                <strong>Step 1:</strong> Click the red <strong>&ldquo;Reset All Demo Data &amp; Sign Out&rdquo;</strong> button above to wipe all database state.
+              </p>
+              <p>
+                <strong>Step 2:</strong> Because GitHub remembers past authorizations, open your GitHub Authorized Apps settings and click <strong>&ldquo;Revoke&rdquo;</strong> on Pasha DevPilot:
+              </p>
+              <div className="pt-1">
+                <a
+                  href="https://github.com/settings/applications"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0f172a] hover:bg-[#1e293b] border border-slate-700 text-sky-400 hover:text-sky-300 text-xs font-medium transition-colors"
+                >
+                  <GitHubIcon className="w-3.5 h-3.5" />
+                  <span>Open GitHub Authorized OAuth Apps (Revoke DevPilot)</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+              <p className="text-slate-400 text-[11px] pt-1">
+                <strong>Step 3:</strong> Click <strong>&ldquo;Connect GitHub&rdquo;</strong> on the home or auth page. GitHub will now show the full green <strong>&ldquo;Authorize Pasha DevPilot&rdquo;</strong> screen for your video recording!
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Section 1: AI Provider Configuration */}

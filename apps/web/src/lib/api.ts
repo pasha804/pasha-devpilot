@@ -297,6 +297,23 @@ export const api = {
     return res;
   },
 
+  async resetDemoData(username?: string): Promise<{ status: string; message: string }> {
+    const query = username ? `?username=${encodeURIComponent(username)}` : "";
+    let res: { status: string; message: string };
+    try {
+      res = await request<{ status: string; message: string }>(`/auth/reset-demo${query}`, {
+        method: "POST",
+      });
+    } catch {
+      res = { status: "error", message: "Failed to reset demo data on server" };
+    }
+    if (typeof window !== "undefined") {
+      localStorage.clear();
+      sessionStorage.clear();
+    }
+    return res;
+  },
+
 
   async getCurrentUser(): Promise<UserProfile> {
     return request("/auth/me");

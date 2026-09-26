@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   AlertCircle,
   ExternalLink,
+  RotateCcw,
 } from "lucide-react";
 import { api, API_BASE, setAuthToken } from "@/lib/api";
 
@@ -110,6 +111,25 @@ export default function AuthPage() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Developer login failed";
       setStatusMessage({ type: "error", text: msg });
+    }
+  };
+
+  const [isResetting, setIsResetting] = useState(false);
+
+  const handleResetDemo = async () => {
+    if (!window.confirm("Erase all stored user sessions, tasks, and repositories to start 100% fresh?")) return;
+    setIsResetting(true);
+    setStatusMessage(null);
+    try {
+      await api.resetDemoData();
+      setStatusMessage({
+        type: "success",
+        text: "Clean slate! All demo data, tasks, repositories, and local sessions have been completely erased.",
+      });
+    } catch {
+      setStatusMessage({ type: "error", text: "Failed to reset demo data on server." });
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -234,6 +254,37 @@ export default function AuthPage() {
               <span>One-Click Local Dev Mode (No Token Required)</span>
             </button>
           </div>
+        </div>
+
+        {/* Demo Video Reset & Fresh Recording Helper */}
+        <div className="p-4 rounded-xl bg-gradient-to-r from-purple-950/30 via-[#0c1322] to-indigo-950/30 border border-purple-800/40 text-xs space-y-2.5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="font-semibold text-purple-300 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+              Demo Video Reset Tool
+            </span>
+            <button
+              onClick={handleResetDemo}
+              disabled={isResetting}
+              className="px-2.5 py-1 rounded-lg bg-rose-900/50 hover:bg-rose-800 border border-rose-700/60 text-rose-200 text-[11px] font-medium transition-colors flex items-center gap-1.5 disabled:opacity-50"
+            >
+              <RotateCcw className={`w-3 h-3 ${isResetting ? "animate-spin" : ""}`} />
+              <span>{isResetting ? "Erasing..." : "Erase All Demo Data"}</span>
+            </button>
+          </div>
+          <p className="text-[11px] text-slate-400 leading-relaxed">
+            Want to record GitHub&apos;s green <strong>&ldquo;Authorize Pasha DevPilot&rdquo;</strong> screen on camera?
+            Revoke the app once in{" "}
+            <a
+              href="https://github.com/settings/applications"
+              target="_blank"
+              rel="noreferrer"
+              className="text-sky-400 underline hover:text-sky-300 inline-flex items-center gap-0.5"
+            >
+              GitHub Authorized Apps <ExternalLink className="w-2.5 h-2.5" />
+            </a>{" "}
+            before clicking Connect GitHub above.
+          </p>
         </div>
 
         {/* Security badge & guarantee */}

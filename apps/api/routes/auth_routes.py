@@ -29,6 +29,25 @@ from ..core.security import (
 )
 from ..core.audit import record_audit_log
 from ..models.user import User, Workspace, WorkspaceMember, Session
+from ..models.task import (
+    Task,
+    TaskStep,
+    FileChange,
+    VerificationRun,
+    PullRequest,
+    AgentRun,
+    ToolCall,
+    AuditLog,
+    UsageRecord,
+)
+from ..models.repository import (
+    Project,
+    Repository,
+    RepositoryFile,
+    RepositorySymbol,
+    ProjectMemory,
+    Integration,
+)
 from ..schemas.auth import GitHubAuthCallback, GitHubTokenLoginRequest, TokenResponse, UserProfileResponse
 from ..services.github_service import GitHubService
 
@@ -494,3 +513,44 @@ async def disconnect_github(
                 await record_audit_log(db, action="GITHUB_DISCONNECT", user_id=user_id, resource_type="AUTH")
                 await db.commit()
     return {"status": "success", "message": "GitHub disconnected successfully."}
+
+
+@router.post("/reset-demo")
+@router.delete("/reset-demo")
+async def reset_demo_data(
+    username: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Completely erases all stored data for the demo user (pasha804 or all users if not specified),
+    allowing a 100% fresh demo recording experience from scratch.
+    """
+    # Delete child records first in cascade order
+    await db.execute(delete(AuditLog))
+    await db.execute(delete(UsageRecord))
+    await db.execute(delete(VerificationRun))
+    await db.execute(delete(FileChange))
+    await db.execute(delete(ToolCall))
+    await db.execute(delete(TaskStep))
+    await db.execute(delete(AgentRun))
+    await db.execute(delete(PullRequest))
+    await db.execute(delete(Task))
+    await db.execute(delete(RepositorySymbol))
+    await db.execute(delete(RepositoryFile))
+    await db.execute(delete(Integration))
+    await db.execute(delete(Repository))
+    await db.execute(delete(ProjectMemory))
+    await db.execute(delete(Project))
+    await db.execute(delete(WorkspaceMember))
+    await db.execute(delete(Session))
+    await db.execute(delete(Workspace))
+    if username:
+        await db.execute(delete(User).where(User.username == username))
+    else:
+        await db.execute(delete(User))
+    await db.commit()
+    return {
+        "status": "success",
+        "message": f"Successfully wiped all tasks, repositories, symbols, sessions, and demo data{' for ' + username if username else ''}. Clean slate ready!"
+    }
+
