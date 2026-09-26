@@ -240,24 +240,37 @@ class RepositoryAnalyzer:
             else:
                 test_status = "Test runner completed with warnings"
 
-        if (self.repo_path / "package.json").exists():
-            res_npm = await self.sandbox.execute_safe_command(["npm", "test"])
-            if res_npm.get("state") == "FAILED":
-                test_status = "NPM test suite failing"
-                findings.append(
-                    RepositoryFinding(
-                        id=f"TEST-{start_seq + len(findings):03d}",
-                        severity="HIGH",
-                        category="Testing",
-                        title="Node.js Automated Test Suite Failure",
-                        description=f"Automated test runner failed:\n{res_npm.get('output', '')[:200]}",
-                        evidence=res_npm.get("output", "")[:250],
-                        file="package.json",
-                        why_it_matters="Broken test suites indicate unverified package builds.",
-                        suggested_improvement="Update unit tests or fix component regression.",
-                        confidence="High",
+        pkg_file = self.repo_path / "package.json"
+        if pkg_file.exists():
+            has_test_script = False
+            try:
+                pkg_data = json.loads(pkg_file.read_text(encoding="utf-8", errors="replace"))
+                scripts = pkg_data.get("scripts", {})
+                test_cmd = str(scripts.get("test", "")).strip()
+                if test_cmd and "no test specified" not in test_cmd.lower():
+                    has_test_script = True
+            except Exception:
+                pass
+
+            if has_test_script:
+                res_npm = await self.sandbox.execute_safe_command(["npm", "test"])
+                output = res_npm.get("output", "")
+                if res_npm.get("state") == "FAILED" and "No such file or directory" not in output and "not found" not in output.lower():
+                    test_status = "NPM test suite failing"
+                    findings.append(
+                        RepositoryFinding(
+                            id=f"TEST-{start_seq + len(findings):03d}",
+                            severity="HIGH",
+                            category="Testing",
+                            title="Node.js Automated Test Suite Failure",
+                            description=f"Automated test runner failed:\n{output[:200]}",
+                            evidence=output[:250],
+                            file="package.json",
+                            why_it_matters="Broken test suites indicate unverified package builds.",
+                            suggested_improvement="Update unit tests or fix component regression.",
+                            confidence="High",
+                        )
                     )
-                )
 
         return findings, test_status
 

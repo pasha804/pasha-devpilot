@@ -165,10 +165,14 @@ export default function RepositoryDetailPage() {
     setResolvingIssueId(issue.id);
     try {
       const res = await api.resolveRepositoryIssue(repoId, issue);
-      router.push(`/tasks/${res.task_id}`);
-    } catch (err) {
+      if (res && res.task_id) {
+        router.push(`/tasks/${res.task_id}`);
+      } else {
+        throw new Error("No task ID returned by backend");
+      }
+    } catch (err: any) {
       console.error("Failed to create plan:", err);
-      alert("Failed to initialize remediation task.");
+      alert(`Remediation task error: ${err?.message || "Failed to initialize remediation task."}`);
     } finally {
       setResolvingIssueId(null);
     }

@@ -436,15 +436,20 @@ from pydantic import BaseModel
 
 
 class ResolveIssuePayload(BaseModel):
-    issue_id: str
+    issue_id: Optional[str] = None
+    id: Optional[str] = None
     title: str
     description: str
     category: str = "LOGIC_BUG"
     severity: str = "HIGH"
-    file_path: str
+    file_path: Optional[str] = None
+    file: Optional[str] = None
     line_number: Optional[int] = None
+    line: Optional[int] = None
     suggested_fix: Optional[str] = None
+    suggested_improvement: Optional[str] = None
     code_snippet: Optional[str] = None
+    evidence: Optional[str] = None
 
 
 class ResolveAllPayload(BaseModel):
@@ -485,17 +490,24 @@ async def resolve_repository_issue(
         raise HTTPException(status_code=404, detail="Repository not found")
 
     classification = "BUG_FIX"
-    if payload.category == "SECURITY":
+    if payload.category in ("SECURITY", "Security"):
         classification = "SECURITY"
-    elif payload.category == "TEST_FAILURE":
+    elif payload.category in ("TEST_FAILURE", "Testing"):
         classification = "BUG_FIX"
+
+    target_file = payload.file_path or payload.file or "src"
+    target_line = payload.line_number or payload.line
+    fix_suggestion = payload.suggested_fix or payload.suggested_improvement or ""
+    snippet = payload.code_snippet or payload.evidence or ""
+    issue_ident = payload.issue_id or payload.id or "ISSUE-001"
 
     task_desc = (
         f"{payload.description}\n\n"
-        f"Target File: {payload.file_path}"
-        + (f":{payload.line_number}" if payload.line_number else "")
-        + (f"\nSuggested Fix: {payload.suggested_fix}" if payload.suggested_fix else "")
-        + (f"\n\nOffending Code Snippet:\n```\n{payload.code_snippet}\n```" if payload.code_snippet else "")
+        f"Issue ID: {issue_ident}\n"
+        f"Target File: {target_file}"
+        + (f":{target_line}" if target_line else "")
+        + (f"\nSuggested Fix: {fix_suggestion}" if fix_suggestion else "")
+        + (f"\n\nOffending Code Snippet:\n```\n{snippet}\n```" if snippet else "")
     )
 
     task = Task(

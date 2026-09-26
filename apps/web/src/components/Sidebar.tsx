@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   ChevronRight,
   User,
+  LogOut,
 } from "lucide-react";
 import { api, UserProfile } from "@/lib/api";
 
@@ -32,6 +33,15 @@ export function Sidebar() {
       .then((u) => setCurrentUser(u))
       .catch(() => setCurrentUser(null));
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await api.logout();
+    } catch {
+      // ignore
+    }
+    window.location.href = "/auth";
+  };
 
   // If on public marketing landing page, sidebar is hidden
   if (pathname === "/") return null;
@@ -136,7 +146,15 @@ export function Sidebar() {
               <p className="text-[10px] text-slate-400 leading-none mt-1 truncate">{displayHandle}</p>
             </div>
           </div>
-          <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 ml-2" title="API Online" />
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={handleLogout}
+              className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-colors"
+              title="Logout / Disconnect account"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
     </aside>

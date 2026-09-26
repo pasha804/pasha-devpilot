@@ -11,9 +11,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install git for repo operations
+# Install git and nodejs for repo operations
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
+    nodejs \
+    npm \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies

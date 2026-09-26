@@ -153,9 +153,19 @@ export function getAuthToken(): string | null {
   return localStorage.getItem("devpilot_token");
 }
 
+export function removeAuthToken(): void {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("devpilot_token");
+  }
+}
+
 export function setAuthToken(token: string): void {
   if (typeof window !== "undefined") {
-    localStorage.setItem("devpilot_token", token);
+    if (!token) {
+      localStorage.removeItem("devpilot_token");
+    } else {
+      localStorage.setItem("devpilot_token", token);
+    }
   }
 }
 
@@ -355,9 +365,20 @@ export const api = {
     repoId: string,
     issue: RepositoryIssueItem
   ): Promise<{ status: string; task_id: string; title: string }> {
+    const payload = {
+      ...issue,
+      id: issue.id,
+      issue_id: issue.id,
+      file: issue.file || issue.file_path || "src",
+      file_path: issue.file || issue.file_path || "src",
+      suggested_fix: issue.suggested_improvement || issue.suggested_fix || "",
+      suggested_improvement: issue.suggested_improvement || issue.suggested_fix || "",
+      code_snippet: issue.evidence || issue.code_snippet || "",
+      evidence: issue.evidence || issue.code_snippet || "",
+    };
     return request(`/repositories/${repoId}/resolve-issue`, {
       method: "POST",
-      body: JSON.stringify(issue),
+      body: JSON.stringify(payload),
     });
   },
 
@@ -365,9 +386,20 @@ export const api = {
     repoId: string,
     issues: RepositoryIssueItem[]
   ): Promise<{ status: string; total_queued: number; tasks: any[] }> {
+    const mapped = issues.map((issue) => ({
+      ...issue,
+      id: issue.id,
+      issue_id: issue.id,
+      file: issue.file || issue.file_path || "src",
+      file_path: issue.file || issue.file_path || "src",
+      suggested_fix: issue.suggested_improvement || issue.suggested_fix || "",
+      suggested_improvement: issue.suggested_improvement || issue.suggested_fix || "",
+      code_snippet: issue.evidence || issue.code_snippet || "",
+      evidence: issue.evidence || issue.code_snippet || "",
+    }));
     return request(`/repositories/${repoId}/resolve-all`, {
       method: "POST",
-      body: JSON.stringify({ issues }),
+      body: JSON.stringify({ issues: mapped }),
     });
   },
 

@@ -26,6 +26,7 @@ import {
   Zap,
   Cpu,
   Check,
+  Lock,
 } from "lucide-react";
 import { Topbar } from "@/components/Topbar";
 import { StatusIndicator } from "@/components/StatusIndicator";
@@ -247,6 +248,62 @@ export default function TaskDetailPage() {
         {/* Living Pipeline Stepper Visualizer (Section 2) */}
         <PipelineVisualizer currentState={task.state} />
 
+        {/* Dynamic Live Stage Telemetry & Progress Strip */}
+        {task.state !== "COMPLETED" && task.state !== "CANCELLED" && (
+          <div className="glass-panel p-4 rounded-2xl border border-cyan-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-gradient-to-r from-[#070d1c] via-[#091124] to-[#070d1c] shadow-lg relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-cyan-400 to-blue-600 animate-pulse" />
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-cyan-950/80 border border-cyan-500/50 flex items-center justify-center text-cyan-300 shadow-[0_0_12px_rgba(0,240,255,0.25)] shrink-0">
+                {task.state === "WAITING_FOR_APPROVAL" ? (
+                  <Lock className="w-5 h-5 text-amber-400 animate-pulse" />
+                ) : task.state === "VERIFYING" ? (
+                  <Terminal className="w-5 h-5 text-cyan-400 animate-bounce" />
+                ) : (
+                  <Activity className="w-5 h-5 text-cyan-400 animate-spin" />
+                )}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-300">
+                    {task.state === "UNDERSTANDING" && "STAGE 1: AST Parsing & Repository Context Discovery"}
+                    {task.state === "INVESTIGATING" && "STAGE 2: Code Search, Defect Isolation & AST Node Analysis"}
+                    {task.state === "PLANNING" && "STAGE 3: Synthesizing Surgical Implementation Plan & Assertions"}
+                    {task.state === "WAITING_FOR_APPROVAL" && "STAGE 4: Human-in-the-Loop Developer Authorization Checkpoint"}
+                    {task.state === "IMPLEMENTING" && "STAGE 5: Applying Precision Unified Diff in Isolated Sandbox"}
+                    {task.state === "VERIFYING" && "STAGE 6: Running Automated Test Suite & Self-Healing Engine"}
+                    {task.state === "READY_TO_SHIP" && "STAGE 7: Verification Passed · Ready for Pull Request Publishing"}
+                    {["NEW", "UNKNOWN"].includes(task.state) && "STAGE 1: Initializing Agent Core Engine"}
+                  </span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                </div>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  {task.state === "WAITING_FOR_APPROVAL"
+                    ? "DevPilot has isolated the defect and proposed a surgical diff. Developer approval required to modify code."
+                    : task.state === "VERIFYING"
+                    ? "Executing sandbox test runner to verify zero regressions. Self-healing active if failures occur."
+                    : task.state === "READY_TO_SHIP"
+                    ? "All assertions verified. Review the unified diff and publish a Pull Request to your GitHub repo."
+                    : "Autonomous agent is querying CleanAPIs DeepSeek V4 Flash with repository AST context."}
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Metrics */}
+            <div className="flex items-center gap-3 shrink-0 text-xs font-mono">
+              <div className="px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-300">
+                <span className="text-slate-500 text-[10px] block uppercase font-bold">Safety Gate</span>
+                <span className="text-emerald-400 font-bold flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Armed (Read-Only)
+                </span>
+              </div>
+              <div className="px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-300">
+                <span className="text-slate-500 text-[10px] block uppercase font-bold">Sandbox</span>
+                <span className="text-cyan-300 font-bold">Isolated Jail</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Task Metadata & High-Tech Command Bar */}
         <div className="glass-panel-elevated p-5 rounded-2xl border border-cyan-500/20 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xl">
           <div>
@@ -361,7 +418,7 @@ export default function TaskDetailPage() {
 
         {/* Tab 1: Implementation Plan (Section 20) */}
         {activeTab === "plan" && (
-          <div className="glass-panel-elevated rounded-2xl p-6 border border-slate-800 space-y-4 font-mono text-xs">
+          <div className="glass-panel-elevated rounded-2xl p-6 border border-slate-800 space-y-6 font-mono text-xs">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <span className="text-white font-bold flex items-center gap-2">
                 <FileCode className="w-4 h-4 text-cyan-400" />
@@ -373,12 +430,84 @@ export default function TaskDetailPage() {
             </div>
 
             {task.plan_markdown ? (
-              <div className="prose prose-invert max-w-none text-slate-300 whitespace-pre-wrap leading-relaxed font-sans text-xs">
-                {task.plan_markdown}
+              <div className="space-y-5">
+                {/* Executive Diagnostic Summary Card */}
+                <div className="p-4 rounded-xl bg-[#080d19] border border-cyan-500/30 grid grid-cols-1 md:grid-cols-4 gap-4 text-xs font-mono">
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">
+                      Target Defect:
+                    </span>
+                    <span className="text-rose-400 font-bold block truncate">{task.title}</span>
+                    <span className="text-[10px] text-slate-400 block">{task.classification}</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">
+                      Affected Scope:
+                    </span>
+                    <span className="text-cyan-300 font-bold block truncate">
+                      {task.file_changes?.[0]?.file_path || "Target source file"}
+                    </span>
+                    <span className="text-[10px] text-emerald-400 block">Surgical AST patch</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">
+                      Safety Verification:
+                    </span>
+                    <span className="text-white font-bold block">Pytest / Sandbox Test</span>
+                    <span className="text-[10px] text-slate-400 block">Bounded self-heal (max 3)</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">
+                      Human Gate:
+                    </span>
+                    <span className="text-amber-400 font-bold block">
+                      {task.is_approved ? "Approved ✓" : "Pending Authorization"}
+                    </span>
+                    <span className="text-[10px] text-slate-400 block">Zero unapproved writes</span>
+                  </div>
+                </div>
+
+                {/* Plan Markdown Content */}
+                <div className="prose prose-invert max-w-none text-slate-300 whitespace-pre-wrap leading-relaxed font-sans text-xs bg-[#060a14] p-5 rounded-xl border border-slate-800">
+                  {task.plan_markdown}
+                </div>
               </div>
             ) : (
-              <div className="text-slate-500 py-12 text-center italic">
-                Agent is formulating implementation plan from repository AST index...
+              <div className="py-12 space-y-6 max-w-lg mx-auto text-center font-mono">
+                <div className="relative w-16 h-16 mx-auto">
+                  <div className="absolute inset-0 rounded-full border-2 border-cyan-500/20 border-t-cyan-400 animate-spin" />
+                  <div className="absolute inset-2 rounded-full border-2 border-blue-500/20 border-b-blue-400 animate-spin" style={{ animationDirection: "reverse" }} />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-cyan-400 animate-pulse" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <h4 className="text-sm font-bold text-white">Synthesizing Surgical Implementation Plan...</h4>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Querying CleanAPIs DeepSeek V4 Flash with repository AST ground truth, identifying offending symbols, and formulating verified fix steps.
+                  </p>
+                </div>
+
+                {/* Real-time Progress Steps */}
+                <div className="bg-[#080d19] border border-slate-800 rounded-xl p-4 text-left space-y-2 text-xs">
+                  <div className="flex items-center gap-2 text-emerald-400">
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>AST Symbol Index Loaded & Parsed</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-cyan-300 animate-pulse">
+                    <Activity className="w-3.5 h-3.5 text-cyan-400 animate-spin" />
+                    <span>Analyzing Offending Code Node & Failure Evidence...</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-500">
+                    <span className="w-3.5 h-3.5 rounded-full border border-slate-700 inline-block" />
+                    <span>Formulating Surgical Unified Patch</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-500">
+                    <span className="w-3.5 h-3.5 rounded-full border border-slate-700 inline-block" />
+                    <span>Structuring Verification Assertions & Test Criteria</span>
+                  </div>
+                </div>
               </div>
             )}
           </div>

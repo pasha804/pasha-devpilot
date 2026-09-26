@@ -12,9 +12,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install OS-level deps needed for git operations inside sandbox
+# Install OS-level deps needed for git and nodejs test operations inside sandbox
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
+    nodejs \
+    npm \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies (layer-cached unless requirements change)
