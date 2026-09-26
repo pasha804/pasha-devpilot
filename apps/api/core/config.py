@@ -2,7 +2,7 @@
 Pasha DevPilot — Configuration & Environment Settings
 """
 
-from typing import List, Optional
+from typing import List, Optional, Any
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -76,6 +76,12 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.FRONTEND_URL and not self.FRONTEND_URL.startswith("http://localhost") and not self.FRONTEND_URL.startswith("http://127.0.0.1"):
+            if not self.GITHUB_REDIRECT_URI or "localhost" in self.GITHUB_REDIRECT_URI:
+                self.GITHUB_REDIRECT_URI = f"{self.FRONTEND_URL.rstrip('/')}/auth/callback"
 
     def get_cors_origins(self) -> List[str]:
         """Returns CORS origins including production URLs if set."""

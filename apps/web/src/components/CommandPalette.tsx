@@ -17,6 +17,7 @@ import {
   FileCode,
   Zap,
 } from "lucide-react";
+import { API_BASE } from "@/lib/api";
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -152,7 +153,7 @@ export function CommandPalette({
       icon: Terminal,
       run: () => {
         onClose();
-        window.open("http://localhost:8000/docs", "_blank");
+        window.open(`${API_BASE}/docs`, "_blank");
       },
     },
   ];

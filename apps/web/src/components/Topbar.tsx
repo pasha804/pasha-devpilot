@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Search, Plus, Terminal, ExternalLink } from "lucide-react";
+import { API_BASE } from "@/lib/api";
 
 interface TopbarProps {
   title?: string;
@@ -54,7 +55,7 @@ export function Topbar({
 
         {/* Fast Docs Link */}
         <a
-          href="http://localhost:8000/docs"
+          href={`${API_BASE}/docs`}
           target="_blank"
           rel="noreferrer"
           className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-900/90 hover:bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-400 hover:text-cyan-300 transition-all"

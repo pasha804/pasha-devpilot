@@ -30,7 +30,7 @@ import {
   Copy,
 } from "lucide-react";
 import { Topbar } from "@/components/Topbar";
-import { api, RepositoryItem, UserProfile, GitHubRepoItem } from "@/lib/api";
+import { api, RepositoryItem, UserProfile, GitHubRepoItem, API_BASE } from "@/lib/api";
 
 function RepositoriesContent() {
   const router = useRouter();
@@ -115,19 +115,13 @@ function RepositoriesContent() {
     setAuthModalError(null);
     try {
       const authInfo = await api.getGitHubAuthUrl();
-      setOauthConfigured(!!authInfo.is_configured);
-      setOauthUrl(authInfo.url || null);
-      if (authInfo.register_app_url) setRegisterAppUrl(authInfo.register_app_url);
-      if (authInfo.generate_pat_url) setGeneratePatUrl(authInfo.generate_pat_url);
-
-      if (authInfo.is_configured && authInfo.url) {
-        // Live production OAuth flow: redirect to GitHub
+      if (authInfo.url) {
         window.location.href = authInfo.url;
-      } else {
-        setShowAuthModal(true);
+        return;
       }
+      window.location.href = `${API_BASE}/auth/github?redirect=true`;
     } catch {
-      setShowAuthModal(true);
+      window.location.href = `${API_BASE}/auth/github?redirect=true`;
     }
   };
 
@@ -247,7 +241,8 @@ function RepositoriesContent() {
   };
 
   const copyCallbackUrl = () => {
-    navigator.clipboard.writeText("http://localhost:3000/auth/callback");
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://web-production-787ab.up.railway.app";
+    navigator.clipboard.writeText(`${origin}/auth/callback`);
     setCopiedCallback(true);
     setTimeout(() => setCopiedCallback(false), 2000);
   };
@@ -630,108 +625,24 @@ function RepositoriesContent() {
             {/* TAB 1: OFFICIAL GITHUB OAUTH 2.0 */}
             {authMode === "oauth" && (
               <div className="space-y-4">
-                {oauthConfigured && oauthUrl ? (
-                  <div className="space-y-4">
-                    <div className="p-4 bg-[#080d19] border border-emerald-500/30 rounded-xl space-y-2">
-                      <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold font-mono">
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span>GitHub OAuth App is Configured</span>
-                      </div>
-                      <p className="text-xs text-slate-300 leading-relaxed">
-                        Clicking the button below will redirect you directly to <strong>github.com</strong>.
-                        GitHub will present its official consent screen asking to authorize Pasha DevPilot.
-                      </p>
-                    </div>
-
-                    <a
-                      href={oauthUrl}
-                      className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#238636] hover:bg-[#2ea043] text-white font-bold rounded-xl text-xs shadow-lg shadow-emerald-900/30 transition-all active:scale-95"
-                    >
-                      <FolderGit2 className="w-4 h-4" />
-                      <span>Authorize on GitHub (Redirect to github.com) ↗</span>
-                    </a>
+                <div className="p-4 bg-[#080d19] border border-cyan-500/30 rounded-xl space-y-2">
+                  <div className="flex items-center gap-2 text-cyan-400 text-xs font-bold font-mono">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span>Official GitHub OAuth 2.0</span>
                   </div>
-                ) : (
-                  <form onSubmit={handleConfigureOAuth} className="space-y-4">
-                    <div className="p-3.5 bg-[#080d19] border border-cyan-500/30 rounded-xl text-xs space-y-2.5">
-                      <p className="text-slate-200 font-bold flex items-center gap-2">
-                        <Shield className="w-4 h-4 text-cyan-400" />
-                        <span>Step 1: Register OAuth App on GitHub (Takes 30 seconds)</span>
-                      </p>
-                      <p className="text-slate-400 text-[11px] leading-relaxed">
-                        GitHub requires an OAuth App to show GitHub&apos;s official authorization consent screen.
-                      </p>
-                      <div className="flex items-center gap-2 pt-1">
-                        <a
-                          href={registerAppUrl || "https://github.com/settings/applications/new?oauth_application[name]=Pasha+DevPilot&oauth_application[url]=http://localhost:3000&oauth_application[callback_url]=http://localhost:3000/auth/callback"}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/50 text-cyan-300 rounded-lg text-xs font-mono font-bold transition-all"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                          <span>1-Click: Open GitHub App Registration Page ↗</span>
-                        </a>
-                      </div>
-                      <div className="p-2 bg-black border border-slate-800 rounded-lg text-[10px] font-mono text-slate-400 flex items-center justify-between">
-                        <span>Callback URL: <strong className="text-cyan-300">http://localhost:3000/auth/callback</strong></span>
-                        <button
-                          type="button"
-                          onClick={copyCallbackUrl}
-                          className="text-slate-400 hover:text-white p-1"
-                          title="Copy callback URL"
-                        >
-                          {copiedCallback ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                        </button>
-                      </div>
-                    </div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Clicking the button below will redirect you to <strong>github.com</strong> to authorize Pasha DevPilot.
+                    Once approved, GitHub will redirect you back with access to your repositories.
+                  </p>
+                </div>
 
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-xs font-mono text-slate-300 mb-1 font-bold">
-                          Step 2: Paste Client ID
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Ov23li... or Client ID from GitHub"
-                          value={clientId}
-                          onChange={(e) => setClientId(e.target.value)}
-                          className="w-full px-3.5 py-2.5 bg-[#080d19] border border-slate-700 focus:border-cyan-400 rounded-xl text-xs text-white placeholder-slate-500 font-mono focus:outline-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-mono text-slate-300 mb-1 font-bold">
-                          Client Secret
-                        </label>
-                        <input
-                          type="password"
-                          placeholder="Paste Client Secret generated on GitHub"
-                          value={clientSecret}
-                          onChange={(e) => setClientSecret(e.target.value)}
-                          className="w-full px-3.5 py-2.5 bg-[#080d19] border border-slate-700 focus:border-cyan-400 rounded-xl text-xs text-white placeholder-slate-500 font-mono focus:outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-end gap-3 pt-2">
-                      <button
-                        type="button"
-                        onClick={() => setShowAuthModal(false)}
-                        className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl text-xs"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={isAuthorizing}
-                        className="px-6 py-2.5 bg-[#238636] hover:bg-[#2ea043] text-white font-bold rounded-xl text-xs shadow-lg shadow-emerald-900/30 flex items-center gap-2 transition-all disabled:opacity-50"
-                      >
-                        <FolderGit2 className="w-4 h-4" />
-                        <span>{isAuthorizing ? "Connecting..." : "Save & Continue to GitHub Authorization ↗"}</span>
-                      </button>
-                    </div>
-                  </form>
-                )}
+                <a
+                  href={oauthUrl || `${API_BASE}/auth/github?redirect=true`}
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#238636] hover:bg-[#2ea043] text-white font-bold rounded-xl text-xs shadow-lg shadow-emerald-900/30 transition-all active:scale-95"
+                >
+                  <FolderGit2 className="w-4 h-4" />
+                  <span>Authorize on GitHub (Redirect to github.com) ↗</span>
+                </a>
               </div>
             )}
 
