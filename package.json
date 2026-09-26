@@ -1,0 +1,31 @@
+{
+  "name": "pasha-devpilot-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pasha DevPilot — Your AI Software Engineer. Understand. Plan. Build. Verify. Ship.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev:web",
+    "dev:web": "npm --prefix apps/web run dev",
+    "dev:api": "python -m uvicorn apps.api.main:app --reload --port 8000",
+    "build": "npm --prefix apps/web run build",
+    "lint": "npm --prefix apps/web run lint",
+    "test": "npm run test:api && npm run test:web",
+    "test:api": "python -m pytest apps/api/tests",
+    "test:web": "npm --prefix apps/web run test"
+  },
+  "keywords": [
+    "ai",
+    "software-engineer",
+    "devpilot",
+    "agent",
+    "code-intelligence",
+    "autonomous-debugging",
+    "verification"
+  ],
+  "author": "Pasha Dev",
+  "license": "Apache-2.0"
+}

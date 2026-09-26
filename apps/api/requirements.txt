@@ -1,0 +1,39 @@
+# Pasha DevPilot — Backend Dependencies
+# Pinned for reproducible Railway/Docker deployments
+
+# Web framework
+fastapi==0.135.1
+uvicorn[standard]==0.41.0
+python-multipart==0.0.22
+
+# Database
+sqlalchemy==2.0.48
+aiosqlite==0.22.1
+asyncpg==0.30.0
+alembic==1.18.4
+
+# Validation & settings
+pydantic==2.12.5
+pydantic-settings==2.14.0
+
+# Auth & crypto
+PyJWT==2.12.1
+cryptography==46.0.5
+passlib[bcrypt]==1.7.4
+itsdangerous==2.2.0
+
+# HTTP client
+httpx==0.28.1
+
+# Async utilities
+aiofiles==25.1.0
+
+# Redis (queue / realtime)
+redis==7.4.0
+
+# Git operations (subprocess, no extra dep needed — git binary required in Docker)
+# gitpython is optional but adds typed interface
+# GitPython==3.1.44
+
+# Observability
+python-json-logger==3.2.1
