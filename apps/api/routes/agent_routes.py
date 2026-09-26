@@ -433,7 +433,7 @@ async def run_execution_worker(task_id: str, repo_id: str, repo_path: str):
                     except Exception as err:
                         print("Self healing diagnostic error:", err)
 
-            if verification_passed:
+            if verification_passed or (v_res and v_res.get("state") == "BLOCKED"):
                 task.state = "READY_TO_SHIP"
                 task.current_mode = "REVIEW"
                 await db.commit()
@@ -445,7 +445,7 @@ async def run_execution_worker(task_id: str, repo_id: str, repo_path: str):
                         "task_id": task.id,
                         "event_type": "ready_to_ship",
                         "state": "READY_TO_SHIP",
-                        "message": "All checks verified successfully. Diff and Pull Request ready for developer review.",
+                        "message": "All checks verified successfully. Diff and Pull Request ready for developer review." if verification_passed else "No automated test suite detected. Code modifications staged for human review.",
                         "payload": {},
                     },
                 )
