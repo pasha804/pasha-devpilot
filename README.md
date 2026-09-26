@@ -1,14 +1,21 @@
-# Pasha DevPilot 🚀
+<p align="center">
+  <img src="https://raw.githubusercontent.com/pasha804/pasha-devpilot/main/apps/web/public/hero-mountains.jpg" width="100%" alt="Pasha DevPilot Hero Banner" style="border-radius: 12px; margin-bottom: 16px;" />
+</p>
 
-> **Your Autonomous AI Software Engineer.**  
-> *Understand. Plan. Build. Verify. Ship.*
+# Pasha DevPilot ⚡
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Powered by IBM Bob](https://img.shields.io/badge/AI%20Backbone-IBM%20Bob-052FAD?logo=ibm)](https://bob.ibm.com)
-[![Next.js 15](https://img.shields.io/badge/Frontend-Next.js%2015-black?logo=next.js)](https://nextjs.org)
-[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi)](https://fastapi.tiangolo.com)
-[![Deployment](https://img.shields.io/badge/Cloud-Railway%20Live-purple?logo=railway)](https://web-production-787ab.up.railway.app)
-[![Target Repo](https://img.shields.io/badge/Demo%20Repo-laughing--octo--eureka-green?logo=github)](https://github.com/pasha804/laughing-octo-eureka)
+<p align="center">
+  <strong>Your Autonomous AI Software Engineer.</strong><br>
+  <em>Understand. Plan. Build. Verify. Ship.</em>
+</p>
+
+<p align="center">
+  <a href="https://bob.ibm.com"><img src="https://img.shields.io/badge/AI%20Backbone-IBM%20Bob%202.0-052FAD?style=for-the-badge&logo=ibm" alt="IBM Bob 2.0" /></a>
+  <a href="https://web-production-787ab.up.railway.app"><img src="https://img.shields.io/badge/Production-Live%20on%20Railway-00D26A?style=for-the-badge&logo=railway" alt="Live Railway" /></a>
+  <a href="https://nextjs.org"><img src="https://img.shields.io/badge/Next.js%2015-Turbopack-000000?style=for-the-badge&logo=next.js" alt="Next.js 15" /></a>
+  <a href="https://fastapi.tiangolo.com"><img src="https://img.shields.io/badge/FastAPI-Python%203.11+-009688?style=for-the-badge&logo=fastapi" alt="FastAPI" /></a>
+  <a href="https://github.com/pasha804/laughing-octo-eureka"><img src="https://img.shields.io/badge/Connected%20Repo-laughing--octo--eureka-blue?style=for-the-badge&logo=github" alt="Target Repo" /></a>
+</p>
 
 ---
 
@@ -16,10 +23,10 @@
 
 | Service | Environment | Live URL | Status |
 |---|---|---|---|
-| **Pasha DevPilot Web Station** | Railway Production | [web-production-787ab.up.railway.app](https://web-production-787ab.up.railway.app) | 🟢 **Live & Online** |
-| **Pasha DevPilot REST API** | Railway Production | [api-production-508f.up.railway.app](https://api-production-508f.up.railway.app) | 🟢 **Live & Online** |
-| **API Health Telemetry** | Railway Production | [api-production-508f.up.railway.app/api/v1/health](https://api-production-508f.up.railway.app/api/v1/health) | 🟢 **Healthy (JSON)** |
-| **Live Target Demo Repo** | GitHub | [pasha804/laughing-octo-eureka](https://github.com/pasha804/laughing-octo-eureka) | 🟢 **Connected** |
+| **Pasha DevPilot Web Station** | Railway Production | [web-production-787ab.up.railway.app](https://web-production-787ab.up.railway.app) | 🟢 **Live & Online (200 OK)** |
+| **Pasha DevPilot REST API** | Railway Production | [api-production-508f.up.railway.app](https://api-production-508f.up.railway.app) | 🟢 **Healthy & Online** |
+| **API Health Telemetry** | Railway Production | [api-production-508f.up.railway.app/health](https://api-production-508f.up.railway.app/health) | 🟢 **JSON Status: Healthy** |
+| **Live Target Demo Repo** | GitHub | [pasha804/laughing-octo-eureka](https://github.com/pasha804/laughing-octo-eureka) | 🟢 **Connected & Audited** |
 
 ### 📚 Core Project Documentation
 

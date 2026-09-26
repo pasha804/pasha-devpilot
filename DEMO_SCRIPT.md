@@ -1,181 +1,159 @@
-# Pasha DevPilot — Master Video Demo Script (English)
+# Pasha DevPilot — Master Cinematic Video Demo Script (English)
 
 > **Event:** IBM Bob 2.0 Hackathon on lablab.ai  
-> **Duration:** 2:45 to 3:00 minutes  
-> **Narration Style:** Professional, authoritative, energetic, crisp international English.  
-> **Target Audience:** Hackathon Judges, Enterprise Tech Leads, Open-Source Maintainers.
+> **Duration:** Exactly 3:00 minutes (180 seconds)  
+> **Narration Style:** Confident, visionary, crisp Silicon Valley engineering delivery.  
+> **Target Audience:** IBM Hackathon Judges, VP of Engineering, Open-Source Devs.  
+> **Live Production URL:** [https://web-production-787ab.up.railway.app](https://web-production-787ab.up.railway.app)  
+> **Target Repository:** [https://github.com/pasha804/laughing-octo-eureka](https://github.com/pasha804/laughing-octo-eureka)
 
 ---
 
-## 📋 Pre-Flight Recording Checklist
+## 🎬 Director's Recording Setup
 
-Before starting OBS Studio, Loom, or Camtasia:
-1. **Screen 1 (Main):** Open [https://web-production-787ab.up.railway.app](https://web-production-787ab.up.railway.app) (or `http://localhost:3000`) in fullscreen 1080p (1920x1080).
-2. **Screen 2 (Tab):** Open [https://github.com/pasha804/laughing-octo-eureka](https://github.com/pasha804/laughing-octo-eureka) ready in an adjacent tab.
-3. **Audio:** Microphone level tested at -6dB to -3dB with noise suppression active.
-4. **Resolution & Zoom:** Set browser zoom to 100% or 110% for sharp text visibility.
+1. **Resolution:** 1080p 60fps (1920x1080) Fullscreen, Browser Zoom 100%.
+2. **Audio Track:** Crisp voiceover recorded with noise filter, optional subtle ambient tech synth pad at -24dB underneath.
+3. **Tab Layout:**
+   - Tab 1: **Pasha DevPilot Landing Page** (`https://web-production-787ab.up.railway.app`)
+   - Tab 2: **Pasha DevPilot Dashboard** (`https://web-production-787ab.up.railway.app/dashboard`)
+   - Tab 3: **GitHub Demo Repository** (`https://github.com/pasha804/laughing-octo-eureka`)
 
 ---
 
-## 🎬 Turn-by-Turn Video Timeline & Spoken Narration
+## ⏱️ Scene-by-Scene Timeline & Voiceover Script
 
-### Scene 1: Landing Page & The Core Problem (0:00 – 0:20)
+### 🌄 SCENE 1: The Cinematic Landing Page & The Problem (0:00 – 0:25)
 
-**On-Screen Actions:**
-- Start fullscreen on the Pasha DevPilot landing page (`/dashboard`).
-- Slowly move the cursor across the cyber-grid showing the live telemetry headline:  
-  *"Autonomous AI Software Engineer powered by IBM Bob"*.
-- Hover briefly over the 5-phase mantra: *"Understand. Plan. Build. Verify. Ship."*
+**Visuals & Screen Action:**
+- Start on the **Pasha DevPilot Cinematic Landing Page**.
+- Slow camera push or cursor pan across the dark mountain horizon with the electric blue light beam rising into the starry sky.
+- Highlight the stylized **"P"** brand logo and headline:  
+  `Pasha DevPilot — Your AI Software Engineer.`  
+  `Understand. Plan. Build. Verify. Ship.`
+- Move cursor over the floating 3D glass card showing the live diff and active building stepper.
 
 **Spoken Script:**
-> *"Hello everyone! Today, developers have plenty of AI code assistants that suggest snippets inside an editor. But writing code is only twenty percent of software engineering. The real challenge is understanding whole-repository topology, planning multi-file refactors, enforcing strict security boundaries, and running automated test suites until the build is proven green.*
+> *"Writing code is only twenty percent of software engineering. The real challenge is diagnosing complex repositories, planning multi-file refactors, enforcing strict security boundaries, and proving that tests pass before shipping to production.*
 >
-> *Meet **Pasha DevPilot** — an autonomous AI software engineer built as an enterprise extension for **IBM Bob**. Powered by IBM Bob's reasoning engine, DevPilot turns GitHub issues and failing test suites into verified, production-ready Pull Requests through a deterministic 7-state finite state machine."*
+> *Meet **Pasha DevPilot** — an autonomous AI software engineer built as a production-grade extension for **IBM Bob**. Powered by IBM Bob's reasoning engine, DevPilot connects to real GitHub repositories, inspects AST topology, halts at human approval gates, tests code inside an isolated sandbox, and pushes verified pull requests with a single click."*
 
 ---
 
-### Scene 2: Real GitHub Authorization & Account Linking (0:20 – 0:40)
+### 🔑 SCENE 2: Zero-PAT GitHub Authentication & Discovery (0:25 – 0:45)
 
-**On-Screen Actions:**
-- Click on **Repositories** in the sidebar navigation (`/repositories`).
-- Click the glowing button: **"Authorize with GitHub"** (or **"Sync Repositories"**).
-- Show the instant OAuth 2.0 handshake completing seamlessly.
-- Point to your connected profile badge: `@pasha804` and the populated repository cyber-grid.
+**Visuals & Screen Action:**
+- Click the electric blue **"Connect GitHub"** button on the navbar.
+- Show the instantaneous, secure OAuth handshake.
+- Land on the **Connected Repositories** view (`/repositories`).
+- Point to connected account `@pasha804` and the target repository card: `pasha804/laughing-octo-eureka`.
 
 **Spoken Script:**
-> *"Connecting to DevPilot is seamless and secure. We implement full server-side GitHub OAuth 2.0 with zero Personal Access Token exposure. Notice what just happened: my GitHub profile `@pasha804` is instantly linked, and DevPilot dynamically discovers all my public and private repositories without needing any client-side secrets."*
+> *"Connecting to DevPilot requires zero friction and zero risk. We built a zero-PAT authentication flow using server-side GitHub OAuth 2.0. No developer ever needs to copy-paste dangerous personal access tokens.*
+>
+> *Here is our live target repository: `laughing-octo-eureka` — a Python authentication and billing microservice with real failing tests. DevPilot clones it directly into an isolated execution jail, strictly blocking destructive shell commands and protecting your host machine."*
 
 ---
 
-### Scene 3: Repository Selection & Sandbox Jail Isolation (0:40 – 1:00)
+### 🧠 SCENE 3: AST Scanning & 20-Section Engineering Report (0:45 – 1:10)
 
-**On-Screen Actions:**
-- Locate and click on the repository card: **`pasha804/laughing-octo-eureka`**.
-- Transition to the repository details view.
-- Highlight the **Sandbox Status Indicator**:  
-  *"Sandbox Jail Initialized — Isolated Temporary Environment"*.
-- Point out the security parameters displayed on the card (Process Isolation, Traversal Guards).
+**Visuals & Screen Action:**
+- Click **"Scan Repository AST"** on `laughing-octo-eureka`.
+- The AST symbol tree populates instantly with functions, classes, and dependency graphs.
+- Show the baseline test failure diagnostics: **4 Failed Tests in Pytest**.
+- Highlight the 2 critical defects found:
+  1. `src/auth_service.py:37` — Inverted comparison operator rejecting valid tokens.
+  2. `src/billing_service.py:58` — Promotional discount added instead of subtracted.
 
 **Spoken Script:**
-> *"Here is our live demo target: `laughing-octo-eureka`, a Python OAuth and billing microservice.
+> *"DevPilot starts in State 1 and 2: **UNDERSTANDING** and **INVESTIGATING**.*
 >
-> When I select this repository, DevPilot clones it directly into an **isolated sandbox execution jail**. Notice our zero-trust security guardrails: arbitrary shell execution is blocked, destructive commands like `rm -rf` and force-pushes are strictly forbidden, and directory traversal is completely contained. The host machine is one hundred percent protected."*
+> *It parses the repository's Abstract Syntax Tree, extracts symbol hierarchies, and runs the baseline test suite. Look at the diagnosis: DevPilot isolates an inverted comparison operator in `auth_service.py` that expires valid tokens immediately, and an arithmetic defect in `billing_service.py` that overcharges users. The test harness is failing with four errors."*
 
 ---
 
-### Scene 4: Deep AST Scanning & Defect Diagnostics (1:00 – 1:25)
+### 🛑 SCENE 4: Launching Task & The Human-in-the-Loop Gate (1:10 – 1:40)
 
-**On-Screen Actions:**
-- Click the button: **"Scan Repository AST"**.
-- Watch the scanner populate the symbol tree: `AuthService`, `BillingService`, `User`, `AuthToken`.
-- Scroll to the detected defects panel:
-  - Defect 1: `src/auth_service.py` (Inverted comparison operator rejecting valid tokens).
-  - Defect 2: `src/billing_service.py` (Promotional discount added instead of subtracted).
-- Show the baseline test failure telemetry: **4 Failed, 3 Passed (Exit Code 1)**.
+**Visuals & Screen Action:**
+- Click **"Launch Autonomous Task"** with the prompt:  
+  `"Fix token expiration logic in auth_service and correct discount calculation in billing_service. Verify all pytest assertions pass."`
+- The **7-State Pipeline Visualizer** illuminates:
+  - `UNDERSTANDING` (✓ Green)
+  - `INVESTIGATING` (✓ Green)
+  - `PLANNING` (✓ Green)
+  - **HALTS at State 4: `WAITING_FOR_APPROVAL` (Glowing Amber Beacon ⚠️)**.
+- Open the **Approval Dialog** showing IBM Bob's multi-step implementation plan.
+- Click **"Approve & Implement"**.
 
 **Spoken Script:**
-> *"Now watch DevPilot's first two states — **UNDERSTANDING** and **INVESTIGATING** — in action.
+> *"Now watch the 7-State Finite State Machine in action.*
 >
-> DevPilot parses the full Abstract Syntax Tree across the codebase, extracting every class, method, and import relationship. It executes the project's existing test harness and uncovers two critical defects:
+> *Here is our core enterprise principle: **AI must never modify production code without explicit developer authorization.**
 >
-> First, an inverted timestamp check in `auth_service.py` that rejects valid authentication tokens; second, an arithmetic defect in `billing_service.py` that adds discounts instead of subtracting them, causing customers to be overcharged. The existing test suite is failing with four errors."*
+> *The orchestrator advances through planning, then automatically halts at State 4: **WAITING_FOR_APPROVAL**. DevPilot presents the exact surgical plan formulated by IBM Bob, listing target files, line numbers, and regression risks. I inspect the plan, click **Approve Plan**, and only then is permission granted to enter the sandbox."*
 
 ---
 
-### Scene 5: Launching Task, 7-State FSM & Human Approval Gate (1:25 – 1:55)
+### 🧪 SCENE 5: Sandboxed Unified Diff & Truthful Pytest Verification (1:40 – 2:10)
 
-**On-Screen Actions:**
-- Click **"Start Engineering Task"** (or `/tasks/new`).
-- Prompt Input:  
-  *"Fix token expiration bug in auth_service and correct discount deduction in billing_service. Verify all pytest assertions pass."*
-- Click **"Launch Autonomous Task"**.
-- The **7-State Pipeline Visualizer** animates across:
-  - `UNDERSTANDING` (Green ✓)
-  - `INVESTIGATING` (Green ✓)
-  - `PLANNING` (Green ✓)
-  - **HALTS at State 4: `WAITING_FOR_APPROVAL` (Glowing Amber ⚠️)**.
-- The **Approval Modal** opens showing the structured step-by-step implementation plan generated by IBM Bob.
-- Point mouse to the steps and risk assessment, then click **"Approve & Implement"**.
-
-**Spoken Script:**
-> *"Let's fix this autonomously. I submit our engineering prompt and launch the task.
->
-> Look at the 7-State Pipeline Visualizer: it transitions through UNDERSTANDING, INVESTIGATING, and PLANNING. 
->
-> And here is our core architectural philosophy: **AI must never touch production code without developer consent.**
->
-> The orchestrator halts execution at State 4: **WAITING_FOR_APPROVAL** with a glowing amber beacon. DevPilot presents the exact multi-file plan generated by IBM Bob. I can review the file targets, inspect the regression risk assessment, and click **Approve Plan**. Only now does DevPilot proceed to write any changes."*
-
----
-
-### Scene 6: Sandboxed Implementation, Pytest & Autonomous Self-Healing (1:55 – 2:20)
-
-**On-Screen Actions:**
-- The pipeline advances to `IMPLEMENTING` (blue pulsing node), applying unified diffs.
-- Moves automatically to `VERIFYING` (State 6).
-- The **Live Streaming Terminal** displays the test execution:  
+**Visuals & Screen Action:**
+- Pipeline advances to `IMPLEMENTING` (State 5) — applies surgical patches.
+- Transitions to `VERIFYING` (State 6).
+- Live sandbox terminal streams the real test run:  
   `pytest tests/ -v`
-- Terminal output logs stream in real-time:
-  - `test_auth.py::test_issue_and_verify_valid_token PASSED`
-  - `test_auth.py::test_expired_token_rejected PASSED`
-  - `test_billing.py::test_calculate_invoice_with_promotional_discount PASSED`
-  - **Banner: `7 passed in 0.42s (100% Green)`**.
+- Watch assertions turn green one by one:
+  - `test_valid_fresh_token PASSED [50%]`
+  - `test_expired_token PASSED [100%]`
+  - **Banner: `2 passed in 0.12s · 100% Test Suite Passage`**.
 
 **Spoken Script:**
-> *"Upon approval, DevPilot transitions to State 5: **IMPLEMENTING**, synthesizing surgical unified diffs and applying them inside the sandbox.
+> *"In State 5: **IMPLEMENTING**, DevPilot applies surgical unified diffs inside the isolated sandbox.
 >
-> Next, in State 6 — **VERIFYING** — the sandbox executes the real pytest test runner. If tests had failed, DevPilot would have initiated an autonomous self-healing loop for up to three attempts, feeding compiler tracebacks back into IBM Bob.
->
-> But here, IBM Bob's patch is surgically accurate on the first try: all seven test assertions turn green in zero point four seconds!"*
+> Next, in State 6: **VERIFYING**, DevPilot runs the real pytest suite. If any test fails, our bounded self-healing engine analyzes the compiler traceback and iterates up to three attempts. But IBM Bob's patch is surgically precise on the first try — all tests pass with zero regressions!"*
 
 ---
 
-### Scene 7: Inspecting Changes in Monaco Diff Editor & Sandbox Editor (2:20 – 2:40)
+### 🔎 SCENE 6: Monaco Diff Review & 1-Click Push to GitHub (2:10 – 2:45)
 
-**On-Screen Actions:**
-- Pipeline advances to State 7: `REVIEWING`.
-- The integrated **Monaco Diff Editor** renders side-by-side:
-  - `src/auth_service.py`: Red line `- if token.expires_at > now:` replaced by Green `+ if token.expires_at < now:`.
-  - `src/billing_service.py`: Red line `- discounted_subtotal = subtotal + discount_amount` replaced by Green `+ discounted_subtotal = subtotal - discount_amount`.
-- Briefly toggle the **Built-in Sandbox Editor** tab to show that developers can also tweak code manually right in the workspace.
+**Visuals & Screen Action:**
+- Navigate to the **Review Workspace** & **Monaco Diff Viewer**.
+- Show side-by-side syntax-highlighted diff:
+  - Red line deleted: `- return current_timestamp < (token.created_at + expires_in)`
+  - Green line added: `+ return current_timestamp > (token.created_at + expires_in)`
+- Scroll to the glowing green banner:  
+  `✓ AI Fixes Completed · Ready to Push (1 file modified)`
+- **CLICK THE SINGLE BUTTON**: **"Push Changes to GitHub"**.
+- Watch the button transition: `Pushing to GitHub...` ➔ `✓ View Shipped PR on GitHub ↗`.
 
 **Spoken Script:**
-> *"We advance to State 7: **REVIEWING**. DevPilot loads the verified patches into our integrated Monaco Diff Editor.
+> *"In State 7: **REVIEWING**, the developer inspects the changes in our integrated Monaco Diff Editor. Every single line added and deleted is crystal clear.
 >
-> Look at the precision: on line 68 of `auth_service.py`, it flipped the inverted operator from greater-than to less-than. On line 58 of `billing_service.py`, it corrected the addition to subtraction. 
->
-> And if the engineer wants to make further manual edits, they can inspect and edit the files directly inside our built-in sandbox editor."*
+> And here is the magic: with this single button — **Push Changes to GitHub** — DevPilot commits the verified diffs to a clean branch, pushes to remote GitHub, and publishes a real Pull Request."*
 
 ---
 
-### Scene 8: Pushing Branch, Opening GitHub PR & Conclusion (2:40 – 3:00)
+### 🚀 SCENE 7: Live GitHub PR & Grand Finale (2:45 – 3:00)
 
-**On-Screen Actions:**
-- In the review bar, click the glowing action button: **"Ship to GitHub"** / **"Create Pull Request"**.
-- An animated notification confirms:  
-  *"Branch pushed: devpilot/fix-auth-billing | Pull Request Created!"*
-- Click the displayed PR link and switch to GitHub tab: [pasha804/laughing-octo-eureka/pull/1](https://github.com/pasha804/laughing-octo-eureka).
-- Show the clean markdown PR description, test logs attached, and green status.
-- Return to DevPilot dashboard showing updated metrics.
+**Visuals & Screen Action:**
+- Click **"View Shipped PR on GitHub"**, opening [pasha804/laughing-octo-eureka/pull/1](https://github.com/pasha804/laughing-octo-eureka).
+- Scroll through the PR description:
+  - Verified test logs embedded
+  - Conventional commit format
+  - All CI checks passing green
+- Cut back to the Pasha DevPilot dashboard showing **Total Work Done: +1 Shipped**.
 
 **Spoken Script:**
-> *"Finally, DevPilot asks: 'Ready to ship?'. I click **Ship Pull Request**. DevPilot automatically creates a dedicated branch, commits the verified files, pushes to the GitHub remote, and opens a real, fully documented Pull Request directly on GitHub.
+> *"Look at this on GitHub: Pull Request opened, complete with test execution logs, diff hashes, and zero hallucinations.
 >
-> From a broken repository with four test failures to a green, verified Pull Request in under ninety seconds. Pasha DevPilot transforms IBM Bob from an advisory chatbot into a truthful, autonomous software engineer.
+> From a broken repository with failing tests to a verified, production-ready Pull Request in under ninety seconds. Pasha DevPilot transforms IBM Bob into a truthful, autonomous software engineer.
 >
-> Thank you for watching!"*
+> Try it live today at our Railway URL. Thank you!"*
 
 ---
 
-## 🎙️ Pacing & Voiceover Guidelines
+## 💡 Top 5 Tips for Video Recording
 
-| Scene | Duration | Tone & Energy | Focus Keyphrase |
-|---|---|---|---|
-| **Scene 1** | 0:00 – 0:20 | Confident, provocative | *"Writing code is only 20% of engineering"* |
-| **Scene 2** | 0:20 – 0:40 | Smooth, modern | *"Zero PAT exposure, server-side OAuth 2.0"* |
-| **Scene 3** | 0:40 – 1:00 | Security-focused, precise | *"Isolated sandbox execution jail"* |
-| **Scene 4** | 1:00 – 1:25 | Analytical, technical | *"AST symbol parsing, 4 test failures"* |
-| **Scene 5** | 1:25 – 1:55 | Dramatic, authoritative | *"AI must never touch code without human consent"* |
-| **Scene 6** | 1:55 – 2:20 | Triumphant, rapid | *"100% green verification in 0.4 seconds"* |
-| **Scene 7** | 2:20 – 2:40 | Detailed, technical | *"Monaco Diff Editor, surgical precision"* |
-| **Scene 8** | 2:40 – 3:00 | Inspiring, conclusive | *"From broken repo to verified PR in 90 seconds"* |
+1. **Keep the pace lively:** Don't pause during loading spinners; talk through the architecture as tasks run.
+2. **Highlight IBM Bob:** Emphasize that `BobProvider` is powering the reasoning, AST defect isolation, and diff generation.
+3. **Show Real Evidence:** Point to the real terminal exit code `0` and the real GitHub pull request URL.
+4. **Mouse Movement:** Smooth, deliberate cursor movements. Avoid fast frantic circles.
+5. **End on Impact:** Leave the live Railway URL on screen for the final 3 seconds.

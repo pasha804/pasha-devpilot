@@ -15,6 +15,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { api, UserProfile } from "@/lib/api";
+import { DevPilotLogo } from "@/components/DevPilotLogo";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -55,19 +56,11 @@ export function Sidebar() {
       {/* Brand Header */}
       <div>
         <div className="px-5 py-4 border-b border-[#1a253c] flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-sky-500/20 group-hover:scale-105 transition-transform">
-              PD
-            </div>
-            <div>
-              <span className="font-bold tracking-tight text-white flex items-center gap-1.5 text-sm">
-                Pasha DevPilot
-                <span className="text-[10px] px-1.5 py-0.2 bg-sky-950 text-sky-400 border border-sky-800 rounded font-mono font-normal">
-                  v1.0
-                </span>
-              </span>
-              <p className="text-[11px] text-slate-400">Your AI Software Engineer</p>
-            </div>
+          <Link href="/dashboard" className="flex items-center gap-2 group">
+            <DevPilotLogo size="sm" clickable={false} />
+            <span className="text-[10px] px-1.5 py-0.5 bg-cyan-950 text-cyan-400 border border-cyan-800 rounded font-mono font-bold">
+              v1.0
+            </span>
           </Link>
         </div>
 

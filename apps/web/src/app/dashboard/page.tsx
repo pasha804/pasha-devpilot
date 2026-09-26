@@ -77,6 +77,44 @@ export default function DashboardPage() {
       />
 
       <div className="p-6 space-y-6 max-w-7xl mx-auto w-full">
+        {/* Mission Control Hero Banner */}
+        <div className="p-6 rounded-2xl border border-sky-500/25 bg-gradient-to-r from-[#060e24] via-[#091536] to-[#060e24] shadow-[0_0_35px_rgba(2,132,199,0.15)] flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
+          <div className="space-y-2 relative z-10">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <span className="font-mono text-xs px-2.5 py-0.5 rounded-full bg-sky-950 text-sky-300 border border-sky-500/40 font-bold uppercase tracking-wider">
+                Autonomous Mission Control · Online
+              </span>
+              <span className="text-xs font-mono text-slate-400">
+                IBM Bob + CleanAPIs Engine
+              </span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+              Pasha DevPilot Autonomous Workstation
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+              Real code intelligence with 7-state pipeline, isolated sandbox execution, and truthful test verification.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0 relative z-10">
+            <button
+              onClick={() => setIsNewTaskOpen(true)}
+              className="flex items-center gap-2 px-5 py-3 rounded-full bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:to-blue-500 text-white font-bold text-xs shadow-[0_0_20px_rgba(2,132,199,0.5)] transition-all active:scale-95"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Launch New Task</span>
+            </button>
+            <Link
+              href="/repositories"
+              className="flex items-center gap-1.5 px-4 py-3 rounded-full bg-[#0a1329] hover:bg-[#0f1d3d] border border-slate-700 text-xs font-semibold text-slate-200 transition-colors"
+            >
+              <FolderGit2 className="w-4 h-4 text-sky-400" />
+              <span>Repositories</span>
+            </Link>
+          </div>
+        </div>
+
         {isLoading ? (
           <div className="space-y-6 animate-pulse">
             {/* Metric Skeletons */}
@@ -130,19 +168,19 @@ export default function DashboardPage() {
           <>
             {/* Real Product Metrics strip */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-4 rounded-xl bg-[#0c1322] border border-[#1a2944] flex items-center justify-between shadow-sm">
+          <div className="p-5 rounded-2xl bg-gradient-to-br from-[#0c162e] to-[#070c1a] border border-[#1b2a4a] hover:border-sky-500/40 flex items-center justify-between shadow-lg transition-all group">
             <div>
               <p className="text-xs font-mono text-slate-400">CONNECTED REPOSITORIES</p>
-              <p className="text-2xl font-bold text-white mt-1">{repositories.length}</p>
+              <p className="text-3xl font-black text-white mt-1 group-hover:text-sky-300 transition-colors">{repositories.length}</p>
               <p className="text-[11px] text-slate-500 mt-1">Live AST indexed codebases</p>
             </div>
-            <div className="p-2.5 rounded-lg bg-sky-950/60 border border-sky-800 text-sky-400">
-              <FolderGit2 className="w-5 h-5" />
+            <div className="p-3 rounded-xl bg-sky-950/80 border border-sky-800 text-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.2)]">
+              <FolderGit2 className="w-6 h-6" />
             </div>
           </div>
 
           {/* Active Tasks Metric */}
-          <div className="p-4 rounded-xl bg-[#0c1322] border border-[#1a2944] flex items-center justify-between shadow-sm relative overflow-hidden">
+          <div className="p-5 rounded-2xl bg-gradient-to-br from-[#0c162e] to-[#070c1a] border border-[#1b2a4a] hover:border-amber-500/40 flex items-center justify-between shadow-lg relative overflow-hidden transition-all group">
             {activeTasks.length > 0 && (
               <div className="absolute top-2 right-2 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] text-amber-400 font-mono">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
@@ -151,35 +189,35 @@ export default function DashboardPage() {
             )}
             <div>
               <p className="text-xs font-mono text-slate-400">ACTIVE TASKS</p>
-              <p className="text-2xl font-bold text-amber-400 mt-1">{activeTasks.length}</p>
+              <p className="text-3xl font-black text-amber-400 mt-1">{activeTasks.length}</p>
               <p className="text-[11px] text-slate-500 mt-1">Work in progress right now</p>
             </div>
-            <div className="p-2.5 rounded-lg bg-amber-950/60 border border-amber-800 text-amber-400">
-              <Activity className="w-5 h-5" />
+            <div className="p-3 rounded-xl bg-amber-950/80 border border-amber-800 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.2)]">
+              <Activity className="w-6 h-6" />
             </div>
           </div>
 
           {/* Total Work Done Metric */}
-          <div className="p-4 rounded-xl bg-[#0c1322] border border-emerald-800/40 flex items-center justify-between shadow-sm">
+          <div className="p-5 rounded-2xl bg-gradient-to-br from-[#0c162e] to-[#070c1a] border border-emerald-900/40 hover:border-emerald-500/40 flex items-center justify-between shadow-lg transition-all group">
             <div>
-              <p className="text-xs font-mono text-emerald-400">TOTAL WORK DONE</p>
-              <p className="text-2xl font-bold text-emerald-400 mt-1">{completedTasks.length}</p>
+              <p className="text-xs font-mono text-emerald-400 font-bold">TOTAL WORK DONE</p>
+              <p className="text-3xl font-black text-emerald-400 mt-1">{completedTasks.length}</p>
               <p className="text-[11px] text-slate-400 mt-1">Finished & ready to ship</p>
             </div>
-            <div className="p-2.5 rounded-lg bg-emerald-950/60 border border-emerald-800 text-emerald-400">
-              <Trophy className="w-5 h-5" />
+            <div className="p-3 rounded-xl bg-emerald-950/80 border border-emerald-800 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.2)]">
+              <Trophy className="w-6 h-6" />
             </div>
           </div>
 
           {/* Truthful Verification Metric */}
-          <div className="p-4 rounded-xl bg-[#0c1322] border border-[#1a2944] flex items-center justify-between shadow-sm">
+          <div className="p-5 rounded-2xl bg-gradient-to-br from-[#0c162e] to-[#070c1a] border border-[#1b2a4a] hover:border-sky-500/40 flex items-center justify-between shadow-lg transition-all group">
             <div>
               <p className="text-xs font-mono text-slate-400">VERIFIED CODE RUNS</p>
-              <p className="text-2xl font-bold text-sky-400 mt-1">{verifiedCount}</p>
+              <p className="text-3xl font-black text-sky-400 mt-1">{verifiedCount}</p>
               <p className="text-[11px] text-slate-500 mt-1">Evidence confirmed in sandbox</p>
             </div>
-            <div className="p-2.5 rounded-lg bg-sky-950/60 border border-sky-800 text-sky-400">
-              <ShieldCheck className="w-5 h-5" />
+            <div className="p-3 rounded-xl bg-sky-950/80 border border-sky-800 text-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.2)]">
+              <ShieldCheck className="w-6 h-6" />
             </div>
           </div>
         </div>

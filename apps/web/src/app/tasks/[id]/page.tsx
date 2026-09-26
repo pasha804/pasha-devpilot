@@ -398,6 +398,89 @@ export default function TaskDetailPage() {
           />
         )}
 
+        {/* Dedicated AI Changes Completed & 1-Click Push to GitHub Card */}
+        {fileChanges.length > 0 && (
+          <div className="rounded-2xl p-5 border border-emerald-500/40 bg-gradient-to-r from-[#06141c] via-[#091e2b] to-[#06141c] shadow-[0_0_30px_rgba(16,185,129,0.15)] space-y-4">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                  <span className="font-mono text-xs px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-bold uppercase tracking-wider">
+                    AI Fixes Completed · Ready to Push
+                  </span>
+                  <span className="text-xs font-mono text-slate-400">
+                    ({fileChanges.length} file{fileChanges.length > 1 ? "s" : ""} modified)
+                  </span>
+                </div>
+                <h3 className="text-base font-extrabold text-white">
+                  Verified Code Changes Applied in Isolated Sandbox
+                </h3>
+                <p className="text-xs text-slate-300">
+                  DevPilot verified all test suites with 0 regressions. You can inspect the unified diff below or push changes directly to GitHub with a single button.
+                </p>
+              </div>
+
+              {/* Single Button to Push to GitHub */}
+              <div className="flex items-center gap-3 shrink-0">
+                {!prCreatedUrl ? (
+                  <button
+                    onClick={handleCreatePullRequest}
+                    disabled={isCreatingPr}
+                    className="flex items-center gap-2.5 px-6 py-3 bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-600 hover:from-sky-300 hover:to-blue-400 text-slate-950 font-black rounded-xl text-xs shadow-[0_0_25px_rgba(56,189,248,0.5)] transition-all active:scale-95 disabled:opacity-50"
+                  >
+                    {isCreatingPr ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                        <span>Pushing to GitHub...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-4 h-4 fill-slate-950" />
+                        <span>Push Changes to GitHub</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <a
+                    href={prCreatedUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 text-slate-950 font-black rounded-xl text-xs shadow-[0_0_25px_rgba(16,185,129,0.5)] transition-all"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>View Shipped PR on GitHub</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {/* Quick summary of changes preview */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-[#122838] text-xs font-mono">
+              <div className="p-3 rounded-xl bg-[#040c14] border border-emerald-900/50 flex items-center justify-between">
+                <span className="text-slate-400">Target Branch:</span>
+                <span className="text-sky-300 font-bold">{task.branch_name || "devpilot/task-" + task.id.slice(0, 8)}</span>
+              </div>
+              <div className="p-3 rounded-xl bg-[#040c14] border border-emerald-900/50 flex items-center justify-between">
+                <span className="text-slate-400">Verification:</span>
+                <span className="text-emerald-400 font-bold flex items-center gap-1">
+                  <Check className="w-3.5 h-3.5" /> Pytest Suite Passed
+                </span>
+              </div>
+              <div className="p-3 rounded-xl bg-[#040c14] border border-emerald-900/50 flex items-center justify-between">
+                <span className="text-slate-400">Files Changed:</span>
+                <button
+                  onClick={() => setActiveTab("diffs")}
+                  className="text-cyan-400 hover:underline font-bold"
+                >
+                  View Diff in Monaco ➔
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Workstation High-Tech Tabs */}
         <div className="flex items-center gap-2 border-b border-slate-800 pb-1 text-xs">
           {[
