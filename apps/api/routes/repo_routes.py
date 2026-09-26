@@ -33,6 +33,34 @@ from apps.worker.queue import job_queue
 router = APIRouter(prefix="/repositories", tags=["Repositories"])
 
 
+async def ensure_repository_on_disk(repo: Repository, db: AsyncSession, token: Optional[str] = None) -> Path:
+    """
+    Ensures repository source files are present on disk.
+    In ephemeral production containers (e.g. Railway Docker), clones repository
+    on demand if disk storage was reset during a container restart or deployment.
+    """
+    project_root = Path(__file__).resolve().parent.parent.parent.parent
+    local_p_str = repo.local_path or f"repos/{repo.owner}_{repo.name}"
+    p = Path(local_p_str)
+    if not p.is_absolute():
+        p = (project_root / local_p_str).resolve()
+
+    # If directory doesn't exist or has no non-hidden files
+    has_files = p.exists() and any(f for f in p.iterdir() if f.name != ".git")
+    if not has_files:
+        clone_url = repo.clone_url or f"https://github.com/{repo.full_name}.git"
+        gh = GitHubService(token=token)
+        await gh.clone_repository(clone_url, str(p))
+        try:
+            rel_posix = p.relative_to(project_root).as_posix()
+            if repo.local_path != rel_posix:
+                repo.local_path = rel_posix
+                await db.commit()
+        except Exception:
+            pass
+    return p
+
+
 @router.get("", response_model=List[RepositoryResponse])
 async def list_repositories(
     authorization: Optional[str] = Header(None),
@@ -343,12 +371,27 @@ async def index_repository_endpoint(repo_id: str, db: AsyncSession = Depends(get
 @router.get("/{repo_id}/tree")
 async def get_repository_file_tree(repo_id: str, db: AsyncSession = Depends(get_db)):
     """Returns the indexed repository files formatted as a nested hierarchy."""
+    q_repo = await db.execute(select(Repository).where(Repository.id == repo_id))
+    repo = q_repo.scalars().first()
+    if repo:
+        await ensure_repository_on_disk(repo, db)
+
     q = await db.execute(
         select(RepositoryFile)
         .where(RepositoryFile.repository_id == repo_id)
         .order_by(RepositoryFile.path.asc())
     )
     files = q.scalars().all()
+
+    if not files and repo:
+        indexer = RepositoryIndexer(repo.local_path or ".")
+        await indexer.index_repository(db, repo.id)
+        q = await db.execute(
+            select(RepositoryFile)
+            .where(RepositoryFile.repository_id == repo_id)
+            .order_by(RepositoryFile.path.asc())
+        )
+        files = q.scalars().all()
 
     # Build hierarchical tree
     root_node = {"name": "root", "path": "", "is_dir": True, "children": {}}
@@ -405,6 +448,7 @@ async def read_repository_file(
     if not repo:
         raise HTTPException(status_code=404, detail="Repository not found")
 
+    await ensure_repository_on_disk(repo, db)
     repo_root = Path(repo.local_path or ".").resolve()
     target_file = (repo_root / path).resolve()
 
@@ -479,6 +523,7 @@ async def scan_repository(repo_id: str, db: AsyncSession = Depends(get_db)):
     if not repo:
         raise HTTPException(status_code=404, detail="Repository not found")
 
+    await ensure_repository_on_disk(repo, db)
     analyzer = RepositoryAnalyzer(repo.local_path or ".")
     report = await analyzer.analyze(repo.id)
     await record_audit_log(db, action="SCAN_REPOSITORY", resource_type="REPOSITORY", resource_id=repo.id, metadata={"total_issues": report.total_issues})
@@ -503,6 +548,8 @@ async def resolve_repository_issue(
     repo = q.scalars().first()
     if not repo:
         raise HTTPException(status_code=404, detail="Repository not found")
+
+    await ensure_repository_on_disk(repo, db)
 
     classification = "BUG_FIX"
     if payload.category in ("SECURITY", "Security"):
