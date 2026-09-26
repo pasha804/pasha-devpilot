@@ -7,10 +7,11 @@ from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
+from ..core.config import settings
 from ..core.database import get_db
 from ..core.security import decode_access_token
 from ..core.audit import record_audit_log
-from ..models.task import Task, PullRequest
+from ..models.task import Task, TaskStep, PullRequest
 from ..models.repository import Repository
 from ..models.user import User
 from ..schemas.verification import PullRequestCreate, PullRequestResponse
