@@ -12,6 +12,7 @@
     "dev:web": "npm --prefix apps/web run dev",
     "dev:api": "python -m uvicorn apps.api.main:app --reload --port 8000",
     "build": "npm --prefix apps/web run build",
+    "start": "npm --prefix apps/web run start",
     "lint": "npm --prefix apps/web run lint",
     "test": "npm run test:api && npm run test:web",
     "test:api": "python -m pytest apps/api/tests",

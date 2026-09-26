@@ -1,0 +1,5 @@
+{
+  "deploy": {
+    "startCommand": "npm --prefix apps/web run start"
+  }
+}
