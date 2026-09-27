@@ -73,3 +73,7 @@ devpilot-hackathon-plan.md
 devpilot_implementation_plan.md
 temp_target/
 scratch/
+
+# Large media files
+*.mp4
+
