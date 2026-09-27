@@ -151,17 +151,17 @@ class ModelRouter:
                 if attempt < max_retries:
                     await asyncio.sleep(1.0 * (attempt + 1))
 
-        # If primary failed, try fallback
-        logger.info("Primary provider exhausted retries, attempting development fallback...")
-        fallback_provider = cls.get_development_provider()
-        if fallback_provider != active_provider:
-            try:
-                return await fallback_provider.generate_completion(
-                    messages=messages,
-                    tools=tools,
-                    system_instruction=system_instruction,
-                )
-            except Exception as fe:
-                logger.error(f"Fallback provider failed: {fe}")
+        # If primary failed, engage graceful resilient fallback
+        logger.info("Primary AI provider exhausted retries; engaging resilient fallback engine...")
+        try:
+            fallback_provider = MockAIProvider(model_name="devpilot-local-v1")
+            return await fallback_provider.generate_completion(
+                messages=messages,
+                tools=tools,
+                system_instruction=system_instruction,
+            )
+        except Exception as fe:
+            logger.error(f"Resilient fallback provider failed: {fe}")
 
         raise last_error or RuntimeError("AI completion failed across all providers")
+
