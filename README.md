@@ -19,6 +19,30 @@
 
 ---
 
+### 🎥 Official Demo Video (3m 23s) & Pitch Deck
+
+<p align="center">
+  <img src="thumbnail.jpg" width="100%" alt="Pasha DevPilot Hackathon Demo" style="border-radius: 12px; margin-bottom: 12px;" />
+</p>
+
+> **Full Walkthrough Video:** End-to-end repository AST defect scanning, IBM Bob reasoning, Human-in-the-Loop approval gate, pytest test suite auto-healing, and 1-click remote Git commit & push.
+> 
+> 📼 **Local Master Video File:** `0927.mp4` *(1280x720 30fps HD, AAC Voiceover, 3m 23s)*  
+> 📄 **Executive Pitch Deck (PDF):** [Pasha_DevPilot_Pitch_Deck.pdf](Pasha_DevPilot_Pitch_Deck.pdf)  
+> 📊 **PowerPoint Presentation (PPTX):** [Pasha_DevPilot_Pitch_Deck.pptx](Pasha_DevPilot_Pitch_Deck.pptx)  
+> 🌐 **Interactive Web Slides:** [presentation.html](presentation.html)  
+
+#### ⏱️ Demo Video Timestamp Breakdown:
+| Timestamp | Demo Stage | What is Demonstrated |
+|---|---|---|
+| **0:00 – 0:35** | **Executive Problem & Solution** | Pasha DevPilot pitch deck, IBM Bob 2.0 hackathon scope, and autonomous SDLC architecture. |
+| **0:35 – 1:05** | **Zero-PAT GitHub OAuth Flow** | Live OAuth authorization with zero PAT sharing, redirecting to production Railway deployment. |
+| **1:05 – 1:45** | **AST Defect Diagnosis** | Real AST scanner identifies 9 genuine defects in `pasha804/laughing-octo-eureka`. |
+| **1:45 – 2:30** | **Human Approval Gate & Sandbox** | Mandatory human sign-off, isolated sandbox test execution, and pytest suite passing (11 passed). |
+| **2:30 – 3:23** | **7-State Pipeline & Git Push** | Full visual pipeline (all 7 stages green), Monaco diff review, and 1-Click remote Git push. |
+
+---
+
 ### 🌐 Live Production Deployments & Links
 
 | Service | Environment | Live URL | Status |
@@ -34,7 +58,7 @@
 - 📘 **[DOCUMENTATION.md](DOCUMENTATION.md)** — Full Technical Architecture, Sandbox Security & API Reference
 - 🎬 **[DEMO_SCRIPT.md](DEMO_SCRIPT.md)** — Word-by-word timestamped video recording script (English)
 - 📝 **[DETAIL.txt](DETAIL.txt)** — Plain-text quick reference sheet for hackathon forms & elevator pitch
-- 📊 **[Interactive Presentation (Browser)](presentation.html)** / **[PowerPoint Slides (PPTX)](Pasha_DevPilot_Deck.pptx)**
+- 📊 **[Executive Pitch Deck (PDF)](Pasha_DevPilot_Pitch_Deck.pdf)** / **[PowerPoint Slides (PPTX)](Pasha_DevPilot_Pitch_Deck.pptx)**
 - 🎨 **[GAMMA_PROMPT.md](GAMMA_PROMPT.md)** — Master Prompt for AI Presentation Generators (Gamma.app / ClickUp)
 - 🤖 **[SKILL.md](SKILL.md)** — Official IBM Bob Skill Marketplace package
 
