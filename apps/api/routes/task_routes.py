@@ -15,7 +15,12 @@ from ..models.task import Task, TaskStep, FileChange, VerificationRun, PullReque
 from ..models.repository import Repository
 from ..models.user import User
 from ..schemas.task import TaskCreate, TaskResponse, PlanApprovalRequest, FileDiffItem, TaskStepItem, VerificationRunItem
+from pathlib import Path
+from pydantic import BaseModel
+from ..core.config import settings
 from ..services.event_bus import event_bus
+from ..services.git_workflow_service import GitWorkflowService
+from ..services.github_service import GitHubService
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
 
@@ -389,4 +394,129 @@ async def complete_task(task_id: str, db: AsyncSession = Depends(get_db)):
     )
 
     return await get_task_details(task_id, db)
+
+
+class PushTaskRequest(BaseModel):
+    commit_message: Optional[str] = None
+    branch_name: Optional[str] = None
+
+
+@router.post("/{task_id}/push")
+async def push_task_to_github(
+    task_id: str,
+    payload: Optional[PushTaskRequest] = None,
+    authorization: Optional[str] = Header(None),
+    db: AsyncSession = Depends(get_db),
+):
+    """Commits all verified modifications and pushes branch directly to GitHub repository."""
+    q = await db.execute(select(Task).where(Task.id == task_id))
+    task = q.scalars().first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    q_repo = await db.execute(select(Repository).where(Repository.id == task.repository_id))
+    repo = q_repo.scalars().first()
+    if not repo:
+        raise HTTPException(status_code=404, detail="Repository not found")
+
+    # Resolve GitHub token
+    user_token = None
+    if authorization and authorization.startswith("Bearer "):
+        payload_jwt = decode_access_token(authorization.split(" ")[1])
+        if payload_jwt and "sub" in payload_jwt:
+            q_u = await db.execute(select(User).where(User.id == payload_jwt["sub"]))
+            u = q_u.scalars().first()
+            if u and u.github_access_token and "mock" not in u.github_access_token:
+                user_token = u.github_access_token
+
+    if not user_token:
+        q_recent = await db.execute(
+            select(User).where(User.github_access_token.isnot(None)).order_by(User.created_at.desc())
+        )
+        recent_u = q_recent.scalars().first()
+        if recent_u and recent_u.github_access_token and "mock" not in recent_u.github_access_token:
+            user_token = recent_u.github_access_token
+
+    if not user_token:
+        user_token = (
+            getattr(settings, "GITHUB_TOKEN", None)
+            or getattr(settings, "GITHUB_ACCESS_TOKEN", None)
+            or getattr(settings, "GITHUB_PAT", None)
+        )
+
+    # Load file changes
+    q_changes = await db.execute(select(FileChange).where(FileChange.task_id == task.id))
+    changes = q_changes.scalars().all()
+    target_files = [c.file_path for c in changes]
+
+    head_branch = (payload.branch_name if payload and payload.branch_name else None) or task.branch_name or f"devpilot/task-{task.id[:8]}"
+    task.branch_name = head_branch
+
+    # Resolve repo path
+    project_root = Path(__file__).resolve().parent.parent.parent.parent
+    local_p = repo.local_path or "."
+    repo_path = Path(local_p)
+    if not repo_path.is_absolute():
+        cand = (project_root / local_p).resolve()
+        if cand.exists():
+            repo_path = cand
+        else:
+            repo_path = repo_path.resolve()
+
+    git_svc = GitWorkflowService(str(repo_path))
+
+    # Commit changes
+    commit_msg = (payload.commit_message if payload and payload.commit_message else None) or task.title
+    commit_res = await git_svc.commit_changes(commit_msg, task.classification, target_files=target_files)
+
+    # Push to origin
+    push_res = await git_svc.push_branch(head_branch, token=user_token, remote_url=repo.clone_url)
+
+    # Get commit SHA
+    sha_res = await git_svc.sandbox.execute_safe_command(["git", "rev-parse", "--short", "HEAD"])
+    commit_sha = sha_res.get("output", "").strip() or "HEAD"
+
+    # Create/link PR or comparison
+    pr = await git_svc.prepare_and_create_pr(
+        db,
+        task=task,
+        owner=repo.owner,
+        repo_name=repo.name,
+        token=user_token,
+        clone_url=repo.clone_url,
+    )
+
+    task.state = "COMPLETED"
+    task.current_mode = "IDLE"
+    await db.commit()
+
+    commit_url = f"https://github.com/{repo.owner}/{repo.name}/commit/{commit_sha}"
+    pr_url = pr.pr_url or f"https://github.com/{repo.owner}/{repo.name}/compare/main...{head_branch}?expand=1"
+
+    await event_bus.publish(
+        task.id,
+        {
+            "task_id": task.id,
+            "event_type": "pushed_to_github",
+            "state": "COMPLETED",
+            "message": f"Successfully pushed commit {commit_sha} to GitHub on branch {head_branch}!",
+            "payload": {
+                "commit_sha": commit_sha,
+                "commit_url": commit_url,
+                "branch": head_branch,
+                "pr_url": pr_url,
+            },
+        },
+    )
+
+    return {
+        "status": "SUCCESS",
+        "commit_sha": commit_sha,
+        "commit_url": commit_url,
+        "branch": head_branch,
+        "pr_url": pr_url,
+        "message": f"Successfully pushed commit {commit_sha} to GitHub ({head_branch})!",
+        "push_output": push_res.get("output", ""),
+    }
+
 

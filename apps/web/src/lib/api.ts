@@ -233,6 +233,33 @@ export interface RepositoryAnalysisReportItem {
   issues: RepositoryIssueItem[];
 }
 
+export interface EnhancementProposalItem {
+  id: string;
+  title: string;
+  description: string;
+  target_files: string[];
+  impact: string;
+  difficulty: string;
+  prompt: string;
+}
+
+export interface EnhanceProposalsResponse {
+  strategy: string;
+  proposals: EnhancementProposalItem[];
+}
+
+export interface PushResult {
+  status: string;
+  success?: boolean;
+  commit_sha: string;
+  commit_url: string;
+  branch: string;
+  branch_name?: string;
+  pr_url: string;
+  message: string;
+  push_output?: string;
+}
+
 export const api = {
   async getGitHubAuthUrl(): Promise<{
     url: string | null;
@@ -512,5 +539,35 @@ export const api = {
 
   async deleteMemory(id: string): Promise<{ status: string }> {
     return request(`/settings/memories/${id}`, { method: "DELETE" });
+  },
+
+  async pushTaskToGitHub(
+    taskId: string,
+    payload?: { commit_message?: string; branch_name?: string }
+  ): Promise<PushResult> {
+    return request(`/tasks/${taskId}/push`, {
+      method: "POST",
+      body: JSON.stringify(payload || {}),
+    });
+  },
+
+  async getEnhancementProposals(
+    repoId: string,
+    prompt?: string
+  ): Promise<EnhanceProposalsResponse> {
+    return request(`/repositories/${repoId}/enhance-proposals`, {
+      method: "POST",
+      body: JSON.stringify({ prompt: prompt || "I want to enhance this repo" }),
+    });
+  },
+
+  async applyEnhancement(
+    repoId: string,
+    payload: { title: string; prompt: string; target_files?: string[]; proposal_id?: string }
+  ): Promise<{ status: string; task_id: string; title: string }> {
+    return request(`/repositories/${repoId}/enhance`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
   },
 };

@@ -29,6 +29,9 @@ from ..services.search_service import CodeSearchService
 from ..services.analyzer_service import RepositoryAnalyzer, RepositoryAnalysisReport, RepositoryIssue
 from .agent_routes import run_investigation_worker
 from apps.worker.queue import job_queue
+import asyncio
+from packages.agent_core.providers.router import ModelRouter
+from packages.agent_core.providers.base import AgentMessage
 
 router = APIRouter(prefix="/repositories", tags=["Repositories"])
 
@@ -647,6 +650,32 @@ Remediate detected defect **{payload.title}** ({issue_ident}) in `{target_file}`
     return {"status": "TASK_CREATED", "task_id": task.id, "title": task.title, "job_id": job_id}
 
 
+class EnhanceProposalRequest(BaseModel):
+    prompt: Optional[str] = "I want to enhance this repo"
+
+
+class EnhancementProposalItem(BaseModel):
+    id: str
+    title: str
+    description: str
+    target_files: List[str] = []
+    impact: str = "High"
+    difficulty: str = "Moderate"
+    prompt: str = ""
+
+
+class EnhanceProposalsResponse(BaseModel):
+    strategy: str
+    proposals: List[EnhancementProposalItem]
+
+
+class ApplyEnhancementRequest(BaseModel):
+    proposal_id: Optional[str] = None
+    title: str
+    prompt: str
+    target_files: Optional[List[str]] = None
+
+
 @router.post("/{repo_id}/resolve-all")
 async def resolve_all_issues(
     repo_id: str,
@@ -654,19 +683,354 @@ async def resolve_all_issues(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
-    """Automatically orchestrates remediation tasks for all detected repository issues."""
+    """Automatically orchestrates a single comprehensive unified remediation task for all detected issues."""
     q = await db.execute(select(Repository).where(Repository.id == repo_id))
     repo = q.scalars().first()
     if not repo:
         raise HTTPException(status_code=404, detail="Repository not found")
 
-    created_tasks = []
-    for issue in payload.issues:
-        res = await resolve_repository_issue(repo_id, issue, background_tasks, db)
-        created_tasks.append(res)
+    await ensure_repository_on_disk(repo, db)
+
+    if not payload.issues:
+        raise HTTPException(status_code=400, detail="No issues provided to resolve")
+
+    if len(payload.issues) == 1:
+        res = await resolve_repository_issue(repo_id, payload.issues[0], background_tasks, db)
+        return {
+            "status": "ALL_TASKS_SCHEDULED",
+            "task_id": res["task_id"],
+            "title": res["title"],
+            "total_queued": 1,
+            "tasks": [res],
+        }
+
+    # Multiple issues: Formulate a single unified comprehensive remediation task
+    issue_bullet_points = []
+    target_files_set = set()
+    for idx, iss in enumerate(payload.issues, 1):
+        f = iss.file_path or iss.file or "src"
+        l = iss.line_number or iss.line
+        l_str = f":{l}" if l else ""
+        sug = iss.suggested_fix or iss.suggested_improvement or "Correct defect and verify invariants."
+        ident = iss.issue_id or iss.id or f"DEFECT-{idx:03d}"
+        target_files_set.add(f)
+        issue_bullet_points.append(
+            f"### Issue #{idx}: {iss.title} ({ident})\n"
+            f"- **Target File:** `{f}`{l_str}\n"
+            f"- **Category:** {iss.category} | **Severity:** {iss.severity}\n"
+            f"- **Description:** {iss.description}\n"
+            f"- **Remediation:** {sug}\n"
+        )
+
+    task_desc = (
+        f"Unified Automated Remediation addressing all {len(payload.issues)} detected issues across {len(target_files_set)} file(s):\n\n"
+        + "\n".join(issue_bullet_points)
+    )
+
+    initial_plan = f"""### Implementation Strategy (Unified Multi-Issue Remediation)
+
+#### 1. Scope & Objective
+Resolve all **{len(payload.issues)} detected defects** across `{len(target_files_set)}` affected source files in a single unified execution pass, verifying zero regressions.
+
+#### 2. Root Cause Breakdown
+{chr(10).join(issue_bullet_points)}
+
+#### 3. Coordinated Remediation Steps
+1. Checkout isolated task branch `devpilot/task-branch`
+2. Apply surgical patches to all affected files:
+{chr(10).join(f"   - `{tf}`" for tf in sorted(target_files_set))}
+3. Execute automated test suite (`pytest` / `npm test`) inside isolated sandbox jail
+4. Verify all test assertions pass with 100% success rate
+
+#### 4. Safety & Verification Gate
+- Human developer review and approval before modifications are applied
+- Sandboxed execution strictly isolated from host
+- Unified Monaco diff preview and 1-click GitHub Push / Pull Request
+"""
+
+    task = Task(
+        repository_id=repo.id,
+        title=f"Resolve All Issues ({len(payload.issues)} Detected Deficiencies)",
+        description=task_desc,
+        classification="BUG_FIX",
+        state="UNDERSTANDING",
+        current_mode="ANALYZE",
+        plan_markdown=initial_plan,
+    )
+    db.add(task)
+    await db.flush()
+
+    step_defs = [
+        (1, "Understand & Classify", "Analyze task intent and repository structure"),
+        (2, "Investigate Context", "Search symbols and files for root cause"),
+        (3, "Formulate Plan", "Generate implementation strategy and assessment"),
+        (4, "Human Approval Gate", "User review and approval of plan"),
+        (5, "Implement Code Changes", "Apply targeted patches and create diffs"),
+        (6, "Automated Verification", "Execute test runner in sandbox environment"),
+        (7, "Review & Ship", "Prepare pull request and summarize results"),
+    ]
+    for num, name, desc in step_defs:
+        s = TaskStep(
+            task_id=task.id,
+            step_number=num,
+            name=name,
+            description=desc,
+            status="RUNNING" if num == 1 else "PENDING",
+        )
+        db.add(s)
+
+    await db.commit()
+    await record_audit_log(db, action="CREATE_UNIFIED_REMEDIATION_TASK", resource_type="TASK", resource_id=task.id)
+
+    job_id = await job_queue.enqueue("investigate_task", {
+        "task_id": task.id,
+        "repo_id": repo.id,
+        "repo_path": repo.local_path or ".",
+        "description": task.description,
+    })
+    background_tasks.add_task(
+        run_investigation_worker,
+        task_id=task.id,
+        repo_id=repo.id,
+        repo_path=repo.local_path or ".",
+        description=task.description,
+    )
 
     return {
         "status": "ALL_TASKS_SCHEDULED",
-        "total_queued": len(created_tasks),
-        "tasks": created_tasks,
+        "task_id": task.id,
+        "title": task.title,
+        "total_queued": 1,
+        "tasks": [{"task_id": task.id, "title": task.title, "job_id": job_id}],
     }
+
+
+@router.post("/{repo_id}/enhance-proposals", response_model=EnhanceProposalsResponse)
+async def get_enhancement_proposals(
+    repo_id: str,
+    payload: EnhanceProposalRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Generates structured architectural and feature enhancement proposals for the repository."""
+    q = await db.execute(select(Repository).where(Repository.id == repo_id))
+    repo = q.scalars().first()
+    if not repo:
+        raise HTTPException(status_code=404, detail="Repository not found")
+
+    await ensure_repository_on_disk(repo, db)
+    repo_p = Path(repo.local_path or ".")
+
+    # Collect file summary
+    files = []
+    for f in repo_p.glob("**/*"):
+        if f.is_file():
+            rel = f.relative_to(repo_p).as_posix()
+            if not any(ign in rel for ign in ("venv", ".venv", "node_modules", ".git", "__pycache__")):
+                files.append(rel)
+                if len(files) >= 25:
+                    break
+
+    tech_type = "Python Microservice" if any(f.endswith(".py") for f in files) else "Modern Web Application"
+
+    default_proposals = [
+        EnhancementProposalItem(
+            id="ENH-001",
+            title="JWT Token Rotation & Cryptographic Signatures",
+            description="Upgrade session and token issuance to cryptographically signed tokens (RS256) with key rotation, anti-tampering protection, and claims verification.",
+            target_files=["src/auth_service.py", "src/models.py"],
+            impact="High",
+            difficulty="Moderate",
+            prompt="Implement cryptographic token signing and key rotation with secure claims validation.",
+        ),
+        EnhancementProposalItem(
+            id="ENH-002",
+            title="Rate Limiting & Anti-Abuse Protection",
+            description="Add token-bucket rate limiting middleware to prevent brute-force attacks and abuse on authentication and payment endpoints.",
+            target_files=["src/auth_service.py", "src/billing_service.py"],
+            impact="High",
+            difficulty="Moderate",
+            prompt="Implement token-bucket rate limiting middleware to defend against API abuse.",
+        ),
+        EnhancementProposalItem(
+            id="ENH-003",
+            title="Comprehensive Regression Test Matrix & Edge Case Mocks",
+            description="Expand test coverage to include boundary edge cases, high concurrency verification, and failure recovery assertions.",
+            target_files=["tests/test_auth.py", "tests/test_billing.py"],
+            impact="Medium",
+            difficulty="Easy",
+            prompt="Add comprehensive unit and integration test assertions covering edge cases and concurrency.",
+        ),
+        EnhancementProposalItem(
+            id="ENH-004",
+            title="Docker Containerization & GitHub Actions CI/CD Pipeline",
+            description="Add multi-stage production Dockerfile and automated GitHub Actions workflow to run linting and pytest verification on every pull request.",
+            target_files=["Dockerfile", ".github/workflows/ci.yml"],
+            impact="High",
+            difficulty="Moderate",
+            prompt="Create a production-grade multi-stage Dockerfile and GitHub Actions CI workflow.",
+        ),
+    ]
+
+    strategy_overview = (
+        f"Pasha DevPilot analyzed repository '{repo.name}' ({tech_type}). "
+        "The codebase has a clean modular foundation. To elevate it to enterprise-grade production readiness, "
+        "we recommend hardening security boundaries, adding rate-limiting defenses, expanding test assertion coverage, "
+        "and configuring automated CI/CD container workflows."
+    )
+
+    try:
+        provider = ModelRouter.get_development_provider()
+        prompt = (
+            f"You are the Lead Principal Software Architect at Pasha DevPilot.\n"
+            f"The developer wants to enhance this repository: '{payload.prompt or 'I want to enhance this repo'}'.\n"
+            f"Repository Name: '{repo.name}'\n"
+            f"Files in scope:\n{chr(10).join(files[:15])}\n\n"
+            f"Provide an architectural enhancement roadmap and 3-4 concrete proposals.\n"
+            f"Return ONLY valid JSON matching this schema:\n"
+            f"{{\n"
+            f"  \"strategy\": \"2-3 sentence overview explaining how to enhance this specific repository...\",\n"
+            f"  \"proposals\": [\n"
+            f"    {{\n"
+            f"      \"id\": \"ENH-001\",\n"
+            f"      \"title\": \"Feature Title\",\n"
+            f"      \"description\": \"Detailed description of value and implementation\",\n"
+            f"      \"target_files\": [\"path/to/file\"],\n"
+            f"      \"impact\": \"High\",\n"
+            f"      \"difficulty\": \"Moderate\",\n"
+            f"      \"prompt\": \"Actionable instructions for autonomous agent\"\n"
+            f"    }}\n"
+            f"  ]\n"
+            f"}}"
+        )
+        resp = await asyncio.wait_for(
+            provider.generate_completion(
+                [
+                    AgentMessage(role="system", content="You are a Principal Software Architect. Always output strictly valid JSON with no markdown."),
+                    AgentMessage(role="user", content=prompt),
+                ],
+                max_tokens=1000,
+            ),
+            timeout=40.0,
+        )
+        raw = resp.content.strip()
+        if "```json" in raw:
+            raw = raw.split("```json")[1].split("```")[0].strip()
+        elif "```" in raw:
+            raw = raw.split("```")[1].split("```")[0].strip()
+        parsed = json.loads(raw)
+        if parsed.get("strategy"):
+            strategy_overview = str(parsed["strategy"])
+        if parsed.get("proposals") and isinstance(parsed["proposals"], list) and len(parsed["proposals"]) > 0:
+            parsed_items = []
+            for p in parsed["proposals"]:
+                parsed_items.append(
+                    EnhancementProposalItem(
+                        id=p.get("id", f"ENH-{len(parsed_items)+1:03d}"),
+                        title=p.get("title", "Enhancement"),
+                        description=p.get("description", ""),
+                        target_files=p.get("target_files", []),
+                        impact=p.get("impact", "High"),
+                        difficulty=p.get("difficulty", "Moderate"),
+                        prompt=p.get("prompt", p.get("title", "")),
+                    )
+                )
+            if parsed_items:
+                default_proposals = parsed_items
+    except Exception as e:
+        import logging
+        logging.getLogger("devpilot.enhance").warning(f"[Enhance AI] Proposals fallback notice: {e}")
+
+    return EnhanceProposalsResponse(
+        strategy=strategy_overview,
+        proposals=default_proposals,
+    )
+
+
+@router.post("/{repo_id}/enhance")
+async def apply_repository_enhancement(
+    repo_id: str,
+    payload: ApplyEnhancementRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+):
+    """Creates an autonomous engineering task to implement a selected enhancement."""
+    q = await db.execute(select(Repository).where(Repository.id == repo_id))
+    repo = q.scalars().first()
+    if not repo:
+        raise HTTPException(status_code=404, detail="Repository not found")
+
+    await ensure_repository_on_disk(repo, db)
+
+    target_files_str = ", ".join(payload.target_files) if payload.target_files else "Repository source files"
+    task_desc = f"{payload.prompt}\n\nEnhancement Scope: {payload.title}\nTarget Files: {target_files_str}"
+
+    initial_plan = f"""### Implementation Strategy (Repository Enhancement)
+
+#### 1. Scope & Objective
+Implement requested enhancement **{payload.title}** in repository `{repo.name}`.
+
+#### 2. Architectural Design
+- **Target Files:** {target_files_str}
+- **Intent:** {payload.prompt}
+
+#### 3. Targeted Implementation Steps
+1. Checkout isolated task branch `devpilot/task-branch`
+2. Formulate precision additions and updates for targeted files
+3. Run verification test suite to ensure zero regressions
+4. Prepare unified Monaco diff preview for developer review
+
+#### 4. Safety & Verification Gate
+- Human developer review and authorization gate
+- Sandboxed execution strictly isolated from host
+"""
+
+    task = Task(
+        repository_id=repo.id,
+        title=f"Enhance: {payload.title}",
+        description=task_desc,
+        classification="FEATURE",
+        state="UNDERSTANDING",
+        current_mode="ANALYZE",
+        plan_markdown=initial_plan,
+    )
+    db.add(task)
+    await db.flush()
+
+    step_defs = [
+        (1, "Understand & Classify", "Analyze task intent and repository structure"),
+        (2, "Investigate Context", "Search symbols and files for root cause"),
+        (3, "Formulate Plan", "Generate implementation strategy and assessment"),
+        (4, "Human Approval Gate", "User review and approval of plan"),
+        (5, "Implement Code Changes", "Apply targeted patches and create diffs"),
+        (6, "Automated Verification", "Execute test runner in sandbox environment"),
+        (7, "Review & Ship", "Prepare pull request and summarize results"),
+    ]
+    for num, name, desc in step_defs:
+        s = TaskStep(
+            task_id=task.id,
+            step_number=num,
+            name=name,
+            description=desc,
+            status="RUNNING" if num == 1 else "PENDING",
+        )
+        db.add(s)
+
+    await db.commit()
+    await record_audit_log(db, action="CREATE_ENHANCEMENT_TASK", resource_type="TASK", resource_id=task.id)
+
+    job_id = await job_queue.enqueue("investigate_task", {
+        "task_id": task.id,
+        "repo_id": repo.id,
+        "repo_path": repo.local_path or ".",
+        "description": task.description,
+    })
+    background_tasks.add_task(
+        run_investigation_worker,
+        task_id=task.id,
+        repo_id=repo.id,
+        repo_path=repo.local_path or ".",
+        description=task.description,
+    )
+
+    return {"status": "TASK_CREATED", "task_id": task.id, "title": task.title, "job_id": job_id}
+

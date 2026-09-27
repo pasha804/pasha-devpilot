@@ -42,7 +42,7 @@ export default function SettingsPage() {
   const [aiProvider, setAiProvider] = useState("cleanapis");
   const [aiBaseUrl, setAiBaseUrl] = useState("https://cleanapis.com/v1");
   const [apiKey, setApiKey] = useState("");
-  const [modelName, setModelName] = useState("deepseek-v4-flash-0731");
+  const [modelName, setModelName] = useState("grok-4.6");
   const [executionMode, setExecutionMode] = useState("local_safe");
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -55,7 +55,7 @@ export default function SettingsPage() {
       setMemories(m);
       setAiProvider(s.ai_provider || "cleanapis");
       setAiBaseUrl(s.ai_base_url || "https://cleanapis.com/v1");
-      setModelName(s.ai_model_name || "deepseek-v4-flash-0731");
+      setModelName(s.ai_model_name || "grok-4.6");
       setExecutionMode(s.execution_mode);
     } catch (err) {
       console.error("Failed to load settings:", err);
@@ -339,15 +339,26 @@ export default function SettingsPage() {
                     setAiProvider(p);
                     if (p === "cleanapis") {
                       setAiBaseUrl("https://cleanapis.com/v1");
-                      setModelName("deepseek-v4-flash-0731");
+                      setModelName("grok-4.6");
+                    } else if (p === "groq") {
+                      setAiBaseUrl("https://api.groq.com/openai/v1");
+                      setModelName("llama-3.3-70b-versatile");
+                    } else if (p === "bob") {
+                      setAiBaseUrl("https://api.bob.ibm.com/v1");
+                      setModelName("bob-code-plus");
                     } else if (p === "openai") {
                       setAiBaseUrl("https://api.openai.com/v1");
                       setModelName("gpt-4o");
+                    } else if (p === "gemini") {
+                      setAiBaseUrl("https://generativelanguage.googleapis.com/v1beta/openai/");
+                      setModelName("gemini-2.0-flash");
                     }
                   }}
                   className="w-full px-3 py-2 bg-[#060a14] border border-[#1e2f4f] rounded-lg text-xs text-slate-100 focus:outline-none focus:border-sky-400 font-medium"
                 >
-                  <option value="cleanapis">CleanAPIs (DeepSeek, Claude, GPT — Recommended)</option>
+                  <option value="cleanapis">CleanAPIs (Grok, DeepSeek, Claude, GPT — Active)</option>
+                  <option value="groq">Groq Direct (Llama 3.3 70B Versatile — Ultra Fast)</option>
+                  <option value="bob">IBM Bob (bob-code-plus — Primary Enterprise)</option>
                   <option value="openai">OpenAI Direct (GPT-4o, o1, o3-mini)</option>
                   <option value="anthropic">Anthropic Direct (Claude 3.5 Sonnet)</option>
                   <option value="gemini">Google Gemini (Gemini 1.5 Pro, 2.0)</option>
@@ -371,14 +382,70 @@ export default function SettingsPage() {
             {aiProvider === "cleanapis" && (
               <div className="p-3 rounded-lg bg-[#070d1a] border border-[#16253f] space-y-2">
                 <span className="text-[11px] font-semibold text-sky-400 font-mono">
-                  CLEANAPIS RECOMMENDED MODELS (Optimized for DevPilot):
+                  CLEANAPIS RECOMMENDED MODELS:
                 </span>
                 <div className="flex flex-wrap gap-2 text-xs">
                   {[
+                    { id: "grok-4.6", label: "grok-4.6 (Active · Grok 4 Fast Reasoning)" },
                     { id: "deepseek-v4-flash-0731", label: "deepseek-v4-flash-0731 ($0.000115/1k · Ultra Low Cost)" },
                     { id: "deepseek-v4-pro-0813", label: "deepseek-v4-pro-0813 ($0.000552/1k · Top Code Reasoning)" },
                     { id: "gemini-3.7-flash", label: "gemini-3.7-flash ($0.001242/1k · 1M Context)" },
                     { id: "claude-sonnet-5", label: "claude-sonnet-5 ($0.0033235/1k · Architecture & Diffs)" },
+                  ].map((preset) => (
+                    <button
+                      type="button"
+                      key={preset.id}
+                      onClick={() => setModelName(preset.id)}
+                      className={`px-2.5 py-1 rounded text-[11px] font-mono transition-colors ${
+                        modelName === preset.id
+                          ? "bg-sky-500/20 text-sky-300 border border-sky-500/50 font-bold"
+                          : "bg-[#0c1424] text-slate-400 hover:text-slate-200 border border-[#1a2b47]"
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {aiProvider === "groq" && (
+              <div className="p-3 rounded-lg bg-[#070d1a] border border-[#16253f] space-y-2">
+                <span className="text-[11px] font-semibold text-sky-400 font-mono">
+                  GROQ DIRECT MODELS (Ultra Low Latency LPU):
+                </span>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  {[
+                    { id: "llama-3.3-70b-versatile", label: "llama-3.3-70b-versatile (Fast Reasoning & Verification)" },
+                    { id: "llama-3.1-8b-instant", label: "llama-3.1-8b-instant (Sub-100ms Instant)" },
+                    { id: "mixtral-8x7b-32768", label: "mixtral-8x7b-32768 (32k Context Window)" },
+                  ].map((preset) => (
+                    <button
+                      type="button"
+                      key={preset.id}
+                      onClick={() => setModelName(preset.id)}
+                      className={`px-2.5 py-1 rounded text-[11px] font-mono transition-colors ${
+                        modelName === preset.id
+                          ? "bg-sky-500/20 text-sky-300 border border-sky-500/50 font-bold"
+                          : "bg-[#0c1424] text-slate-400 hover:text-slate-200 border border-[#1a2b47]"
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {aiProvider === "bob" && (
+              <div className="p-3 rounded-lg bg-[#070d1a] border border-[#16253f] space-y-2">
+                <span className="text-[11px] font-semibold text-sky-400 font-mono">
+                  IBM BOB ENTERPRISE MODELS:
+                </span>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  {[
+                    { id: "bob-code-plus", label: "bob-code-plus (Primary SDLC Pipeline Model)" },
+                    { id: "bob-code-fast", label: "bob-code-fast (Fast Verification & Linting)" },
                   ].map((preset) => (
                     <button
                       type="button"

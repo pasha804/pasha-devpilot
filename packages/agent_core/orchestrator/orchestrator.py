@@ -108,10 +108,10 @@ class AgentOrchestrator:
         
         plan_content = ""
         try:
-            # 3.5-second bounded timeout so user demo recording is NEVER blocked or frozen in PLANNING
+            # 45-second bounded timeout to allow full LLM reasoning and completions
             completion = await asyncio.wait_for(
                 self.provider.generate_completion(messages, max_tokens=1500),
-                timeout=3.5
+                timeout=45.0
             )
             plan_content = completion.content
         except Exception as e:

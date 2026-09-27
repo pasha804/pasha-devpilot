@@ -346,36 +346,78 @@ async def run_execution_worker(task_id: str, repo_id: str, repo_path: str):
                             new_code = code.replace("subtotal + discount_amount", "subtotal - discount_amount")
                             await apply_file_patch(bill_file, new_code, f"Fixed promotional discount addition in {bill_file.name}")
 
-            # 3. If no targeted rule triggered or arbitrary files referenced in plan, call AI Provider
-            if not patched_files and task.plan_markdown:
+            # 3. Apply AI precision patches for all target files referenced in task description or plan
+            if task.plan_markdown or task.description:
                 try:
-                    candidate_paths = re.findall(r"[`'\"]([a-zA-Z0-9_\-\./]+\.[a-zA-Z0-9]+)[`'\"]", task.plan_markdown)
+                    combined_text = f"{task.title}\n{task.description}\n{task.plan_markdown}"
+                    # Find paths like `src/auth_service.py`, `tests/test_auth.py`, `Dockerfile`, etc.
+                    found_paths = re.findall(r"[`'\"]([a-zA-Z0-9_\-\./]+\.[a-zA-Z0-9]+|Dockerfile)[`'\"]", combined_text)
+                    # Also look for lines like "Target File: path/to/file"
+                    explicit_targets = re.findall(r"Target File[s]?:\s*([^\r\n]+)", combined_text)
+                    for exp_t in explicit_targets:
+                        for token in re.split(r"[,;`\s]+", exp_t):
+                            token = token.strip().strip("'\"`")
+                            if token and ("." in token or token == "Dockerfile"):
+                                found_paths.append(token)
+
+                    # Deduplicate while preserving order
+                    seen_candidates = set()
+                    candidate_paths = []
+                    for cp in found_paths:
+                        cp_clean = cp.split(":")[0].strip()
+                        if cp_clean and cp_clean not in seen_candidates and not cp_clean.startswith("http"):
+                            seen_candidates.add(cp_clean)
+                            candidate_paths.append(cp_clean)
+
+                    provider = ModelRouter.get_development_provider()
                     for rel_candidate in candidate_paths:
+                        if rel_candidate in patched_files:
+                            continue
+                        # Security: skip sensitive files
+                        p_check = Path(rel_candidate)
+                        if p_check.name.startswith(".env") or p_check.suffix in (".pem", ".key", ".cert"):
+                            continue
+
                         cand_file = (repo_root / rel_candidate).resolve()
-                        if cand_file.exists() and cand_file.is_file() and cand_file.is_relative_to(repo_root):
+                        # Ensure inside repo root
+                        try:
+                            cand_file.relative_to(repo_root)
+                        except ValueError:
+                            continue
+
+                        orig_code = ""
+                        if cand_file.exists() and cand_file.is_file():
                             orig_code = cand_file.read_text(encoding="utf-8", errors="replace")
-                            provider = ModelRouter.get_development_provider()
-                            patch_prompt = (
-                                f"You are applying an approved fix for an engineering task.\n"
-                                f"Task Plan:\n{task.plan_markdown}\n\n"
-                                f"Target File: {rel_candidate}\n"
-                                f"Current File Content:\n```\n{orig_code}\n```\n\n"
-                                f"Return ONLY the complete updated file content within a single ```python or ```code block, with no other commentary."
-                            )
+
+                        patch_prompt = (
+                            f"You are Pasha DevPilot AI Software Engineer applying an approved plan.\n"
+                            f"Task Title: {task.title}\n"
+                            f"Task Plan:\n{task.plan_markdown}\n\n"
+                            f"Target File: {rel_candidate}\n"
+                            f"Current File Content:\n```\n{orig_code}\n```\n\n"
+                            f"Instructions:\n"
+                            f"Provide the complete, production-ready updated content for this file to fulfill the approved plan.\n"
+                            f"Return ONLY the code within a single ```block with NO commentary or explanation."
+                        )
+
+                        try:
                             completion = await asyncio.wait_for(
                                 provider.generate_completion([
-                                    AgentMessage(role="system", content="You are a precise software engineer applying an approved code fix."),
+                                    AgentMessage(role="system", content="You are a principal software engineer. Return only the raw code block."),
                                     AgentMessage(role="user", content=patch_prompt),
                                 ]),
-                                timeout=4.0
+                                timeout=60.0
                             )
                             content = completion.content
                             code_match = re.search(r"```(?:\w+)?\n([\s\S]*?)```", content)
                             new_code = code_match.group(1) if code_match else content
 
                             if new_code.strip() and new_code.strip() != orig_code.strip():
+                                cand_file.parent.mkdir(parents=True, exist_ok=True)
                                 await apply_file_patch(cand_file, new_code, f"Applied AI patch to {rel_candidate}")
-                                break
+                        except Exception as file_patch_err:
+                            import logging
+                            logging.getLogger("devpilot.agent").warning(f"[AI Patching File Error] {rel_candidate}: {file_patch_err}")
                 except Exception as patch_err:
                     import logging
                     logging.getLogger("devpilot.agent").warning(f"[AI Patching Notice] {patch_err}")

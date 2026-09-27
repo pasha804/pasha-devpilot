@@ -820,7 +820,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-lg font-bold text-white">IBM Bob Core Engine</h3>
               <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-                Integrated with IBM Bob (`bob-code-plus`) and CleanAPIs DeepSeek V4 Flash for multi-stage reasoning, deep semantic context, and surgical diff generation.
+                Integrated with IBM Bob (`bob-code-plus`), Grok-4.6, and Groq LPUs for multi-stage reasoning, deep semantic context, and surgical diff generation.
               </p>
             </div>
 

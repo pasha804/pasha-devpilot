@@ -31,6 +31,7 @@ import {
   Eye,
   Wrench,
   AlertCircle,
+  Zap,
 } from "lucide-react";
 import { Topbar } from "@/components/Topbar";
 import { FileTree } from "@/components/FileTree";
@@ -43,6 +44,8 @@ import {
   FileTreeNode,
   RepositoryIssueItem,
   RepositoryAnalysisReportItem,
+  EnhanceProposalsResponse,
+  EnhancementProposalItem,
 } from "@/lib/api";
 
 export default function RepositoryDetailPage() {
@@ -59,8 +62,8 @@ export default function RepositoryDetailPage() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
 
-  // Active View: AI Diagnostics (Default) vs Code Explorer vs Engineering Report
-  const [activeView, setActiveView] = useState<"diagnostics" | "explorer" | "report">("diagnostics");
+  // Active View: AI Diagnostics (Default) vs Code Explorer vs Engineering Report vs Enhancement Studio
+  const [activeView, setActiveView] = useState<"diagnostics" | "explorer" | "report" | "enhance">("diagnostics");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisStage, setAnalysisStage] = useState<number>(0);
   const [report, setReport] = useState<RepositoryAnalysisReportItem | null>(null);
@@ -69,6 +72,13 @@ export default function RepositoryDetailPage() {
   const [resolvingIssueId, setResolvingIssueId] = useState<string | null>(null);
   const [isResolvingAll, setIsResolvingAll] = useState(false);
   const [dismissedIssues, setDismissedIssues] = useState<Set<string>>(new Set());
+
+  // Active AI Model and Enhancement Studio State
+  const [activeModel, setActiveModel] = useState<string>("Grok-4.6 / Groq");
+  const [enhancePrompt, setEnhancePrompt] = useState<string>("I want to enhance this repo");
+  const [isGeneratingEnhance, setIsGeneratingEnhance] = useState<boolean>(false);
+  const [enhanceData, setEnhanceData] = useState<EnhanceProposalsResponse | null>(null);
+  const [applyingProposalId, setApplyingProposalId] = useState<string | null>(null);
 
   const loadFile = useCallback(
     async (filePath: string) => {
@@ -109,6 +119,15 @@ export default function RepositoryDetailPage() {
       const defaultFile = findFirstFile(tree) || "src/auth_service.py";
       setSelectedFile(defaultFile);
       loadFile(defaultFile);
+
+      // Load active AI Model settings
+      api.getSettings().then((s) => {
+        if (s.ai_model_name) {
+          setActiveModel(s.ai_model_name);
+        } else if (s.ai_provider) {
+          setActiveModel(s.ai_provider);
+        }
+      }).catch(() => {});
     } catch (err) {
       console.error("Failed to load repo:", err);
     }
@@ -179,20 +198,63 @@ export default function RepositoryDetailPage() {
   };
 
   /**
-   * Batch Resolve All Detected Issues
+   * Batch Resolve All Detected Issues into a Single Unified Task
    */
   const handleResolveAllIssues = async () => {
-    if (!report || report.issues.length === 0) return;
+    const issuesToResolve = (report?.issues || []).filter((i) => !dismissedIssues.has(i.id));
+    if (issuesToResolve.length === 0) return;
     setIsResolvingAll(true);
     try {
-      const res = await api.resolveAllIssues(repoId, report.issues);
-      if (res.tasks && res.tasks.length > 0) {
-        router.push(`/tasks/${res.tasks[0].task_id}`);
+      const res: any = await api.resolveAllIssues(repoId, issuesToResolve);
+      const taskId = res.task_id || (res.tasks && res.tasks[0]?.task_id);
+      if (taskId) {
+        router.push(`/tasks/${taskId}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to resolve all issues:", err);
+      alert(`Remediation batch error: ${err?.message || "Failed to initialize batch remediation."}`);
     } finally {
       setIsResolvingAll(false);
+    }
+  };
+
+  /**
+   * Analyze Repository and Generate Architectural Enhancement Proposals
+   */
+  const handleFetchEnhancements = async (customPrompt?: string) => {
+    const p = customPrompt || enhancePrompt;
+    setIsGeneratingEnhance(true);
+    try {
+      const data = await api.getEnhancementProposals(repoId, p);
+      setEnhanceData(data);
+      setActiveView("enhance");
+    } catch (err) {
+      console.error("Failed to generate enhancement proposals:", err);
+    } finally {
+      setIsGeneratingEnhance(false);
+    }
+  };
+
+  /**
+   * Formulate and Apply a Selected Enhancement Plan
+   */
+  const handleApplyEnhancement = async (proposal: EnhancementProposalItem) => {
+    setApplyingProposalId(proposal.id);
+    try {
+      const res = await api.applyEnhancement(repoId, {
+        title: proposal.title,
+        prompt: proposal.prompt || proposal.description,
+        target_files: proposal.target_files,
+        proposal_id: proposal.id,
+      });
+      if (res && res.task_id) {
+        router.push(`/tasks/${res.task_id}`);
+      }
+    } catch (err: any) {
+      console.error("Failed to apply enhancement:", err);
+      alert(`Enhancement error: ${err?.message || "Failed to initialize enhancement task."}`);
+    } finally {
+      setApplyingProposalId(null);
     }
   };
 
@@ -304,6 +366,23 @@ export default function RepositoryDetailPage() {
             <FileText className="w-3.5 h-3.5" />
             <span>Architecture Report</span>
           </button>
+
+          <button
+            onClick={() => {
+              setActiveView("enhance");
+              if (!enhanceData && !isGeneratingEnhance) {
+                handleFetchEnhancements();
+              }
+            }}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs transition-all ${
+              activeView === "enhance"
+                ? "bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-black shadow-[0_0_12px_rgba(168,85,247,0.4)]"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+            <span>AI Enhancement</span>
+          </button>
         </div>
 
         {/* Global Sandbox Actions */}
@@ -350,7 +429,7 @@ export default function RepositoryDetailPage() {
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
           <span>Sensitive files (.env, *.pem, secrets) are shielded from AI prompts. Zero Secret Leakage Guarantee.</span>
         </div>
-        <span className="text-cyan-400/80 hidden md:inline">DeepSeek V4 Flash · Pytest Sandbox Runner</span>
+        <span className="text-cyan-400/80 hidden md:inline font-mono">{activeModel} · Pytest Sandbox Runner</span>
       </div>
 
       {/* TAB 1: AI BUG HUNTER & DIAGNOSTICS VIEW */}
@@ -489,13 +568,38 @@ export default function RepositoryDetailPage() {
                   <button
                     onClick={handleResolveAllIssues}
                     disabled={isResolvingAll || allVisibleIssues.length === 0}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-purple-600/30 transition-all active:scale-95 disabled:opacity-50"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-black rounded-xl text-xs shadow-lg shadow-purple-600/30 transition-all active:scale-95 disabled:opacity-50"
                   >
                     <Wrench className="w-3.5 h-3.5" />
-                    <span>{isResolvingAll ? "Scheduling Fixes..." : "Auto-Remediate All Issues"}</span>
+                    <span>{isResolvingAll ? "Formulating Fixes..." : `⚡ Resolve All (${allVisibleIssues.length}) Issues`}</span>
                   </button>
                 </div>
               </div>
+
+              {/* High-Impact Batch Remediation Alert */}
+              {allVisibleIssues.length > 0 && (
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-950/40 via-indigo-950/40 to-[#080d19] border border-purple-500/30 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-purple-900/60 border border-purple-500/50 flex items-center justify-center text-purple-300 shrink-0">
+                      <Wrench className="w-5 h-5 text-purple-300" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-white">Batch Issue Resolution Available</h4>
+                      <p className="text-xs text-slate-400">
+                        DevPilot can formulate and execute a unified fix plan addressing all {allVisibleIssues.length} detected issues together in a single coordinated pass.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleResolveAllIssues}
+                    disabled={isResolvingAll}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-purple-500 to-cyan-400 hover:from-purple-400 hover:to-cyan-300 text-slate-950 font-black rounded-xl text-xs shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all shrink-0 active:scale-95"
+                  >
+                    <Zap className="w-4 h-4 fill-slate-950" />
+                    <span>{isResolvingAll ? "Scheduling Fixes..." : `Resolve All (${allVisibleIssues.length}) Issues`}</span>
+                  </button>
+                </div>
+              )}
 
               {/* Bug Finding Cards */}
               <div className="space-y-4">
@@ -728,6 +832,178 @@ export default function RepositoryDetailPage() {
               >
                 Generate 20-Section Architecture Report
               </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 4: AI REPOSITORY ENHANCEMENT STUDIO */}
+      {activeView === "enhance" && (
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-7xl mx-auto w-full">
+          {/* Header & Prompt Bar */}
+          <div className="p-8 rounded-2xl glass-panel-elevated border border-purple-500/30 shadow-2xl space-y-5">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-950/80 border border-purple-500/40 text-[11px] font-mono text-purple-300 font-bold shadow-[0_0_10px_rgba(168,85,247,0.25)]">
+                  <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                  <span>AI Repository Enhancement Studio</span>
+                </div>
+                <h2 className="text-xl font-black text-white tracking-tight">
+                  Elevate, Modernize & Extend Your Codebase with AI
+                </h2>
+                <p className="text-xs text-slate-400 leading-relaxed max-w-2xl">
+                  Tell Pasha DevPilot what capabilities you want to add. DevPilot inspects your architecture and designs production-grade enhancement roadmaps with surgical execution plans.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs font-mono text-purple-300 bg-purple-950/60 px-3 py-1.5 rounded-xl border border-purple-500/30 shrink-0">
+                <Cpu className="w-4 h-4 text-purple-400" />
+                <span>Engine: {activeModel}</span>
+              </div>
+            </div>
+
+            {/* Prompt Input Form */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleFetchEnhancements();
+              }}
+              className="flex flex-col sm:flex-row gap-3 pt-2"
+            >
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={enhancePrompt}
+                  onChange={(e) => setEnhancePrompt(e.target.value)}
+                  placeholder="e.g. I want to enhance this repo, add security hardening, rate limiting, and docker..."
+                  className="w-full px-4 py-3 bg-[#060a14] border border-purple-500/40 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400 font-mono shadow-inner"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isGeneratingEnhance}
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 via-indigo-600 to-cyan-500 hover:from-purple-400 hover:to-cyan-400 text-white font-black rounded-xl text-xs shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all active:scale-95 disabled:opacity-50 shrink-0"
+              >
+                {isGeneratingEnhance ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Analyzing Architecture...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    <span>Analyze Enhancements</span>
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Preset Enhancement Prompt Chips */}
+            <div className="flex items-center gap-2 flex-wrap text-xs pt-1">
+              <span className="text-[11px] font-mono font-bold text-slate-500 uppercase">Suggested Ideas:</span>
+              {[
+                "I want to enhance this repo",
+                "Add security hardening & JWT token signatures",
+                "Add Redis caching & rate limiting middleware",
+                "Add comprehensive test coverage & edge cases",
+                "Add Dockerfile & GitHub Actions CI pipeline",
+              ].map((chip, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    setEnhancePrompt(chip);
+                    handleFetchEnhancements(chip);
+                  }}
+                  className="px-3 py-1 bg-[#090f1f] hover:bg-purple-950/60 border border-slate-800 hover:border-purple-500/40 rounded-lg text-[11px] font-mono text-slate-300 hover:text-purple-200 transition-colors"
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Strategy Overview Card */}
+          {enhanceData && (
+            <div className="p-6 rounded-2xl bg-gradient-to-r from-[#070e1c] via-[#0d162d] to-[#070e1c] border border-cyan-500/30 shadow-xl space-y-2">
+              <div className="flex items-center gap-2 text-cyan-300 text-xs font-bold font-mono">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span>ARCHITECTURAL ROADMAP ASSESSMENT</span>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed font-mono">
+                {enhanceData.strategy}
+              </p>
+            </div>
+          )}
+
+          {/* Proposal Cards Grid */}
+          {enhanceData && (
+            <div className="space-y-4">
+              <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+                <Layers className="w-4 h-4 text-purple-400" />
+                <span>Recommended Architectural Enhancements ({enhanceData.proposals.length})</span>
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {enhanceData.proposals.map((prop) => (
+                  <div
+                    key={prop.id}
+                    className="glass-panel-elevated border border-slate-800 hover:border-purple-500/40 rounded-2xl p-6 space-y-4 transition-all shadow-xl flex flex-col justify-between"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-lg bg-purple-950 text-purple-300 border border-purple-500/40 font-bold">
+                          {prop.id}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-lg bg-emerald-950/60 text-emerald-400 border border-emerald-500/30">
+                            Impact: {prop.impact}
+                          </span>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
+                            {prop.difficulty}
+                          </span>
+                        </div>
+                      </div>
+
+                      <h4 className="text-base font-black text-white">{prop.title}</h4>
+                      <p className="text-xs text-slate-400 leading-relaxed">{prop.description}</p>
+
+                      {prop.target_files && prop.target_files.length > 0 && (
+                        <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                          <span className="text-[10px] font-mono text-slate-500 uppercase font-bold">Target Files:</span>
+                          {prop.target_files.map((tf, i) => (
+                            <code key={i} className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#060a14] border border-slate-800 text-cyan-300">
+                              {tf}
+                            </code>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-800/80 flex items-center justify-end">
+                      <button
+                        onClick={() => handleApplyEnhancement(prop)}
+                        disabled={applyingProposalId === prop.id}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-purple-600/30 transition-all active:scale-95 disabled:opacity-50"
+                      >
+                        {applyingProposalId === prop.id ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>Formulating Plan...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>Formulate & Apply Plan</span>
+                            <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

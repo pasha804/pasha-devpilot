@@ -87,7 +87,15 @@ const STEPS: PipelineStep[] = [
   },
 ];
 
-export function PipelineVisualizer({ currentState, hasPlan }: { currentState: string; hasPlan?: boolean }) {
+export function PipelineVisualizer({
+  currentState,
+  hasPlan,
+  modelName = "Grok-4.6 (CleanAPIs)",
+}: {
+  currentState: string;
+  hasPlan?: boolean;
+  modelName?: string;
+}) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const stateUpper = (currentState || "NEW").toUpperCase();
 
@@ -153,7 +161,7 @@ export function PipelineVisualizer({ currentState, hasPlan }: { currentState: st
           <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900/90 border border-slate-800 text-[11px] font-mono text-slate-300">
             <Cpu className="w-3 h-3 text-cyan-400" />
             <span className="text-slate-400">Model:</span>
-            <span className="text-cyan-300 font-semibold">DeepSeek V4 Flash</span>
+            <span className="text-cyan-300 font-semibold">{modelName}</span>
           </div>
 
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900/90 border border-slate-800 text-[11px] font-mono text-slate-300">
