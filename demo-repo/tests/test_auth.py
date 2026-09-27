@@ -1,35 +1,49 @@
-"""
-Tests for AuthService
-"""
-
-import time
 import pytest
-from src.models import User
-from src.auth_service import AuthService
+from datetime import datetime, timezone, timedelta
+from src.models import User, AuthToken
+from src.auth_service import AuthService, TokenExpiredError, TokenRevokedError, InsufficientPermissionsError
 
+@pytest.fixture
+def auth_service():
+    return AuthService()
 
-def test_valid_fresh_token():
-    auth = AuthService()
-    user = User(id="usr_01", username="pasha", email="pasha@example.com")
-    auth.register_user(user)
+@pytest.fixture
+def sample_user():
+    return User(id="usr_9981", username="alex_dev", email="alex@company.internal")
 
-    now = 1000000.0
-    token = auth.issue_token(user_id="usr_01", current_timestamp=now)
+def test_issue_and_verify_valid_token(auth_service, sample_user):
+    """A freshly issued token with 60 minutes lifetime should be valid and verified."""
+    token = auth_service.issue_token(sample_user, scopes=["repo:read", "repo:write"], lifetime_minutes=60)
+    
+    # Verification should pass cleanly
+    verified = auth_service.verify_token(token.token_id, required_scope="repo:read")
+    assert verified.user_id == sample_user.id
+    assert "repo:write" in verified.scopes
 
-    # 10 seconds later, token MUST still be valid
-    validated_user = auth.validate_token(token.token, current_timestamp=now + 10)
-    assert validated_user is not None, "Freshly issued token within 3600s must be valid"
-    assert validated_user.id == "usr_01"
+def test_revoked_token_raises_error(auth_service, sample_user):
+    """Revoked token must raise TokenRevokedError."""
+    token = auth_service.issue_token(sample_user, scopes=["admin"])
+    auth_service.revoke_token(token.token_id)
 
+    with pytest.raises(TokenRevokedError):
+        auth_service.verify_token(token.token_id)
 
-def test_expired_token():
-    auth = AuthService()
-    user = User(id="usr_02", username="alex", email="alex@example.com")
-    auth.register_user(user)
+def test_expired_token_rejected(auth_service, sample_user):
+    """A token issued in the past with expired timestamp must be rejected."""
+    token = auth_service.issue_token(sample_user, scopes=["read"], lifetime_minutes=-15)
 
-    now = 1000000.0
-    token = auth.issue_token(user_id="usr_02", current_timestamp=now)
+    with pytest.raises(TokenExpiredError):
+        auth_service.verify_token(token.token_id)
 
-    # 4000 seconds later (beyond 3600s limit), token MUST be expired
-    validated_user = auth.validate_token(token.token, current_timestamp=now + 4000)
-    assert validated_user is None, "Token beyond 3600s expiration limit must be rejected"
+def test_missing_scope_raises_error(auth_service, sample_user):
+    """Requesting verification with an unauthorized scope must fail."""
+    token = auth_service.issue_token(sample_user, scopes=["read:profile"])
+
+    with pytest.raises(InsufficientPermissionsError):
+        auth_service.verify_token(token.token_id, required_scope="admin:write")
+
+def test_api_key_validation(auth_service):
+    """API key validator should return True only when provided key matches expected."""
+    assert auth_service.validate_api_key("sec_key_xyz", "sec_key_xyz") is True
+    assert auth_service.validate_api_key("wrong_key", "sec_key_xyz") is False
+

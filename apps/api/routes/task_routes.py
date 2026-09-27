@@ -204,6 +204,65 @@ async def get_task_details(task_id: str, db: AsyncSession = Depends(get_db)):
     q_changes = await db.execute(select(FileChange).where(FileChange.task_id == task.id))
     changes = q_changes.scalars().all()
 
+    if not changes and task.state in ("READY_TO_SHIP", "COMPLETED", "REVIEWING"):
+        q_repo = await db.execute(select(Repository).where(Repository.id == task.repository_id))
+        repo_obj = q_repo.scalars().first()
+        if repo_obj and repo_obj.local_path:
+            project_root = Path(__file__).resolve().parent.parent.parent.parent
+            repo_path = Path(repo_obj.local_path)
+            if not repo_path.is_absolute():
+                repo_path = (project_root / repo_obj.local_path).resolve()
+            if repo_path.exists():
+                try:
+                    import subprocess, re
+                    diff_out = subprocess.check_output(
+                        ["git", "diff", "origin/main...HEAD", "--unified=3"],
+                        cwd=str(repo_path),
+                        text=True,
+                        errors="replace"
+                    )
+                    if not diff_out:
+                        diff_out = subprocess.check_output(
+                            ["git", "diff", "HEAD~1", "--unified=3"],
+                            cwd=str(repo_path),
+                            text=True,
+                            errors="replace"
+                        )
+                    if diff_out:
+                        file_diffs = re.split(r"(?=diff --git )", diff_out)
+                        for fd in file_diffs:
+                            if not fd.strip():
+                                continue
+                            m = re.search(r"diff --git a/([^\s]+) b/([^\s]+)", fd)
+                            if m:
+                                f_rel = m.group(2)
+                                full_file = repo_path / f_rel
+                                new_c = full_file.read_text(encoding="utf-8", errors="replace") if full_file.exists() else ""
+                                orig_c = ""
+                                try:
+                                    orig_c = subprocess.check_output(
+                                        ["git", "show", f"origin/main:{f_rel}"],
+                                        cwd=str(repo_path),
+                                        text=True,
+                                        errors="replace"
+                                    )
+                                except Exception:
+                                    orig_c = new_c
+                                fc = FileChange(
+                                    task_id=task.id,
+                                    file_path=f_rel,
+                                    change_type="MODIFIED",
+                                    unified_diff=fd,
+                                    original_content=orig_c,
+                                    new_content=new_c
+                                )
+                                db.add(fc)
+                        await db.commit()
+                        q_changes = await db.execute(select(FileChange).where(FileChange.task_id == task.id))
+                        changes = q_changes.scalars().all()
+                except Exception:
+                    pass
+
     q_v = await db.execute(
         select(VerificationRun).where(VerificationRun.task_id == task.id).order_by(VerificationRun.attempt_number.desc())
     )

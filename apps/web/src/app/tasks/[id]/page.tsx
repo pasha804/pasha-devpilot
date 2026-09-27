@@ -879,6 +879,53 @@ Remediate detected defect **${task.title}** and verify zero regressions against 
                         <span className="text-emerald-400 font-semibold">Pytest Suite Passed (Exit 0)</span>
                       </div>
                     </div>
+
+                    {/* Visual Unified Diff Snippet with Red Deletions & Green Additions */}
+                    {change.unified_diff && (
+                      <div className="rounded-xl overflow-hidden border border-slate-800 bg-[#040814] text-xs font-mono">
+                        <div className="px-3.5 py-1.5 bg-[#081020] border-b border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+                          <span className="flex items-center gap-1.5 font-bold text-slate-200">
+                            <FileCode className="w-3.5 h-3.5 text-cyan-400" />
+                            Unified Patch Preview ({change.file_path})
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            <span className="text-rose-400 font-bold">- Red: Deletions</span> &nbsp;|&nbsp; <span className="text-emerald-400 font-bold">+ Green: Additions</span>
+                          </span>
+                        </div>
+                        <div className="p-3 max-h-60 overflow-y-auto space-y-0.5 font-mono text-[11px] leading-relaxed">
+                          {change.unified_diff.split("\n").map((line, lIdx) => {
+                            if (line.startsWith("+") && !line.startsWith("+++")) {
+                              return (
+                                <div key={lIdx} className="bg-emerald-950/50 text-emerald-300 px-2 py-0.5 rounded-sm border-l-2 border-emerald-400 flex items-start gap-2">
+                                  <span className="text-emerald-400 select-none font-bold">+</span>
+                                  <span className="whitespace-pre-wrap">{line.slice(1)}</span>
+                                </div>
+                              );
+                            }
+                            if (line.startsWith("-") && !line.startsWith("---")) {
+                              return (
+                                <div key={lIdx} className="bg-rose-950/50 text-rose-300 px-2 py-0.5 rounded-sm border-l-2 border-rose-400 flex items-start gap-2">
+                                  <span className="text-rose-400 select-none font-bold">-</span>
+                                  <span className="whitespace-pre-wrap">{line.slice(1)}</span>
+                                </div>
+                              );
+                            }
+                            if (line.startsWith("@@")) {
+                              return (
+                                <div key={lIdx} className="text-cyan-400/90 px-2 py-0.5 font-bold text-[10px] bg-cyan-950/30 rounded-sm">
+                                  {line}
+                                </div>
+                              );
+                            }
+                            return (
+                              <div key={lIdx} className="text-slate-400 px-2 py-0.5 whitespace-pre-wrap">
+                                {line}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -888,19 +935,47 @@ Remediate detected defect **${task.title}** and verify zero regressions against 
 
         {/* Tab 3: Monaco Code Diff Viewer (Section 30) */}
         {activeTab === "diffs" && (
-          <div className="h-[560px]">
-            {primaryDiff ? (
-              <DiffViewer
-                filePath={primaryDiff.file_path}
-                original={primaryDiff.original_content || ""}
-                modified={primaryDiff.new_content || ""}
-                explanation="Surgical logic correction verified against test suite."
-              />
-            ) : (
-              <div className="glass-panel rounded-2xl p-12 text-center text-xs text-slate-500">
-                No code modifications applied yet. Approve the plan to generate and inspect diffs.
+          <div className="space-y-3">
+            {/* Multi-file selector bar */}
+            {fileChanges.length > 1 && (
+              <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                {fileChanges.map((change, idx) => {
+                  const isSelected = selectedDiffIndex === idx;
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => setSelectedDiffIndex(idx)}
+                      className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-mono transition-all border ${
+                        isSelected
+                          ? "bg-cyan-950/80 border-cyan-400 text-cyan-300 font-bold shadow-[0_0_12px_rgba(0,240,255,0.2)]"
+                          : "bg-slate-900/80 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                      }`}
+                    >
+                      <FileCode className="w-3.5 h-3.5 text-cyan-400" />
+                      <span className="truncate max-w-[220px]">{change.file_path}</span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-semibold">
+                        MODIFIED
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             )}
+
+            <div className="h-[560px]">
+              {primaryDiff ? (
+                <DiffViewer
+                  filePath={primaryDiff.file_path}
+                  original={primaryDiff.original_content || ""}
+                  modified={primaryDiff.new_content || ""}
+                  explanation={`Verified patch applied for: ${task.title}. Red = Deletions, Green = Additions.`}
+                />
+              ) : (
+                <div className="glass-panel rounded-2xl p-12 text-center text-xs text-slate-500">
+                  No code modifications applied yet. Approve the plan to generate and inspect diffs.
+                </div>
+              )}
+            </div>
           </div>
         )}
 
